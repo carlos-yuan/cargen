@@ -2,7 +2,7 @@ package main
 
 import (
 	"flag"
-	"github.com/carlos-yuan/cargen/gen"
+	"github.com/carlos-yuan/cargen/cmd/gen"
 )
 
 func main() {
