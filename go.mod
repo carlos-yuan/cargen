@@ -1,4 +1,4 @@
-module github.com/Carlos-Yuan/cargen
+module github.com/carlos-yuan/cargen
 
 go 1.19
 

@@ -1,8 +1,8 @@
 package main
 
 import (
-	"cargen/gen"
 	"flag"
+	"github.com/carlos-yuan/cargen/gen"
 )
 
 func main() {
