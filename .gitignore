@@ -1,0 +1,12 @@
+./uml
+./idea
+.idea
+*.zip
+*.json
+json
+*.exe
+*.log
+#*.gen.go
+#*gen.go
+#*.pb.go
+
