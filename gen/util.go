@@ -2,12 +2,15 @@ package gen
 
 import (
 	"bytes"
-	fileUtl "comm/file"
+	"errors"
 	"fmt"
 	"go/ast"
 	"go/doc"
+	"io"
+	"os"
 	"regexp"
 	"strings"
+	"sync"
 )
 
 /**
@@ -176,8 +179,173 @@ func ModelToProtobuf(path, protoPkg, goPkg, modelPath, modelName string) {
 		}
 	}
 	dir = path + "\\" + protoPkg + "\\rpc\\" + protoPkg + "_model_gen.proto"
-	err = fileUtl.WriteStringFile(dir, protoBuf.String())
+	err = WriteStringFile(dir, protoBuf.String())
 	if err != nil {
 		panic(err)
 	}
+}
+
+var mutex sync.Mutex
+
+func WriteByteFile(filePath string, data []byte) error {
+	mutex.Lock()
+	defer mutex.Unlock()
+	fileCheck, err := os.Stat(filePath)
+	if err == nil {
+		if fileCheck.IsDir() {
+			return errors.New("path is directory")
+		}
+		file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_TRUNC, 0666) //修改模式,变更为写入模式O_WRONLY和清除模式O_TRUNC
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+		_, err = file.Write(data)
+		if err == nil {
+			return err
+		}
+	}
+	err = CreateFilePath(filePath)
+	if err != nil {
+		return err
+	}
+	file, err := os.Create(filePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	_, err = file.Write(data)
+	return err
+}
+
+func AppendStringFile(filePath string, data string) error {
+	mutex.Lock()
+	defer mutex.Unlock()
+	fileCheck, err := os.Stat(filePath)
+	if err == nil {
+		if fileCheck.IsDir() {
+			return errors.New("path is directory")
+		}
+		file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_TRUNC, 0666) //修改模式,变更为写入模式O_WRONLY和清除模式O_TRUNC
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+		_, err = file.WriteString(data)
+		if err == nil {
+			return err
+		}
+	}
+	err = CreateFilePath(filePath)
+	if err != nil {
+		return err
+	}
+	file, err := os.Create(filePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	_, err = file.WriteString(data)
+	return err
+}
+
+func AppendByteFile(filePath string, data []byte) error {
+	mutex.Lock()
+	defer mutex.Unlock()
+	fileCheck, err := os.Stat(filePath)
+	if err == nil {
+		if fileCheck.IsDir() {
+			return errors.New("path is directory")
+		}
+		file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_APPEND, 0666) //修改模式,变更为写入模式O_WRONLY和清除模式O_TRUNC
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+		_, err = file.Write(data)
+		if err == nil {
+			return err
+		}
+	}
+	err = CreateFilePath(filePath)
+	if err != nil {
+		return err
+	}
+	file, err := os.Create(filePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	_, err = file.Write(data)
+	return err
+}
+
+func WriteStringFile(filePath string, data string) error {
+	mutex.Lock()
+	defer mutex.Unlock()
+	fileCheck, err := os.Stat(filePath)
+	if err == nil {
+		if fileCheck.IsDir() {
+			return errors.New("path is directory")
+		}
+		file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_TRUNC, 0666) //修改模式,变更为写入模式O_WRONLY和清除模式O_TRUNC
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+		_, err = file.WriteString(data)
+		if err == nil {
+			return err
+		}
+	}
+	err = CreateFilePath(filePath)
+	if err != nil {
+		return err
+	}
+	file, err := os.Create(filePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	_, err = file.WriteString(data)
+	return err
+}
+
+func CreateFilePath(path string) error {
+	if !IsFile(path) {
+		path = strings.Replace(path, "\\", "/", -1)
+		path = path[:strings.LastIndex(path, "/")]
+		if !IsExist(path) {
+			err := os.MkdirAll(path, os.ModePerm)
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		return errors.New("path is file")
+	}
+	return nil
+}
+
+func IsExist(f string) bool {
+	_, err := os.Stat(f)
+	boolean := os.IsExist(err)
+	return err == nil || boolean
+}
+
+func IsFile(f string) bool {
+	fi, e := os.Stat(f)
+	if e != nil {
+		return false
+	}
+	return !fi.IsDir()
+}
+
+func ReadAll(filePth string) ([]byte, error) {
+	f, err := os.Open(filePth)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	return io.ReadAll(f)
 }
