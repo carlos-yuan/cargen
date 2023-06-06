@@ -6,6 +6,7 @@
 json
 *.exe
 *.log
+*.sum
 #*.gen.go
 #*gen.go
 #*.pb.go
