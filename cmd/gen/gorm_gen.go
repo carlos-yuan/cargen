@@ -6,12 +6,12 @@ import (
 	"gorm.io/gorm"
 )
 
-func GormGen(path, dsn string, tables []string) {
+func GormGen(path, dsn, name string, tables []string) {
 	g := gen.NewGenerator(gen.Config{
-		OutPath:       path + "/orm/query",
+		OutPath:       path + "/orm/" + name + "/query",
 		Mode:          gen.WithoutContext | gen.WithDefaultQuery | gen.WithQueryInterface, // generate mode
 		FieldNullable: true,
-		ModelPkgPath:  path + "/orm/model",
+		ModelPkgPath:  path + "/orm/" + name + "/model",
 	})
 	g.WithJSONTagNameStrategy(func(columnName string) (tagContent string) {
 		return ToCamelFirstLowerCase(columnName)

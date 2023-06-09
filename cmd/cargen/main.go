@@ -11,6 +11,7 @@ func main() {
 	flag.StringVar(&conf.Path, "p", "", "path")
 	flag.StringVar(&conf.DbDsn, "d", "", "dsn")
 	flag.StringVar(&conf.Tables, "t", "", "tables")
+	flag.StringVar(&conf.DbName, "db", "", "db name")
 	flag.Parse()
 	if conf.Name == "" || conf.Path == "" {
 		println("服务名及项目目录不能为空")

@@ -16,10 +16,10 @@ import (
 	"strings"
 )
 
-func CarGen(name, grpcPath, grpcPkgName, distPath, distPkg string) {
-	err := (&Generator{Model: name, PkgPath: grpcPath, PkgName: grpcPkgName, DistPath: distPath, DistPkg: distPkg,
+func CarGen(name, dbName, grpcPath, grpcPkgName, distPath, distPkg string) {
+	err := (&Generator{Model: name, DbName: dbName, PkgPath: grpcPath, PkgName: grpcPkgName, DistPath: distPath, DistPkg: distPkg,
 		ServiceFields: []ServiceField{
-			{Field: "*query.Query", Import: `"` + name + `/orm/query"`},
+			{Field: "*query.Query", Import: `"/orm/` + dbName + `/query"`},
 			{Field: "cache *redisd.Decorator", Import: `redisd "comm/redis"`},
 			{Field: "conf  *config.Config", Import: `"` + name + `/config"`},
 			{Field: "e.Err", Import: `e "comm/error"`},
@@ -36,6 +36,7 @@ type Generator struct {
 	PkgName            string
 	DistPath           string
 	DistPkg            string
+	DbName             string
 	hasTx              bool
 	ServiceFields      []ServiceField
 	MethodImports      []string
@@ -147,7 +148,7 @@ func (g *Generator) generateServiceFile(intfs []*ast.TypeSpec) {
 func (g *Generator) generateServiceHeader() string {
 	var tx string
 	if g.hasTx {
-		tx = "\t\"" + g.Model + "/orm/query\"\n"
+		tx = "\t\"orm/" + g.DbName + "/query\"\n"
 	}
 	structStr := fmt.Sprintf("import (\n\t\"context\"\n\te \"comm/error\"\n\t\"%s\"\n%s)\n\n", g.PkgPath, tx)
 	return structStr
