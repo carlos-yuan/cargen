@@ -19,7 +19,7 @@ func (c Config) Build() {
 	if c.DbDsn != "" && c.DbName != "" {
 		GormGen(c.Path, c.DbDsn, c.DbName, strings.Split(c.Tables, ","))
 	}
-	ModelToProtobuf(c.Path, c.Name, "pb", c.Name+"/orm/model", "model")
+	ModelToProtobuf(c.Path, c.Name, "pb", c.Path+"/orm/"+c.DbName+"/model", "model")
 	KitexGen(c.Name, c.Path)
 	CarGen(c.Name, c.DbName, c.Name+"/rpc/kitex_gen/pb", "pb", projectPath+"/service/", "service")
 	println("Generation time:", time.Now().UnixMilli()-start)
