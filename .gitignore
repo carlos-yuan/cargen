@@ -1,0 +1,11 @@
+./uml
+./idea
+.idea
+*.zip
+*.json
+json
+*.exe
+*.log
+*go.sum
+
+

@@ -273,6 +273,10 @@ func (g *Generator) generateMethodFile(intfs []*ast.TypeSpec) {
 						rOld := method.Decl.Type.Results.List
 						rNew := m.Type.(*ast.FuncType).Results.List
 						rOldExpr1 := rOld[0].Type.(*ast.StarExpr).X.(*ast.SelectorExpr)
+						_, ok := rNew[0].Type.(*ast.StarExpr).X.(*ast.SelectorExpr)
+						if ok {
+							println(rNew[0].Type.(*ast.StarExpr).X)
+						}
 						rNewExpr1 := rNew[0].Type.(*ast.StarExpr).X.(*ast.Ident)
 						if rOldExpr1.X.(*ast.Ident).Name != g.PkgName || rOldExpr1.Sel.Name != rNewExpr1.Name {
 							//替换方法文件出参类型
