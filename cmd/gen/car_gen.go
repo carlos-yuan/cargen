@@ -22,7 +22,6 @@ func CarGen(name, dbName, grpcPath, grpcPkgName, distPath, distPkg string) {
 			{Field: "*query.Query", Import: `"/orm/` + dbName + `/query"`},
 			{Field: "cache *redisd.Decorator", Import: `redisd "comm/redis"`},
 			{Field: "conf  *config.Config", Import: `"` + name + `/config"`},
-			{Field: "e.Err", Import: `e "comm/error"`},
 		},
 	}).Run()
 	if err != nil {
@@ -150,7 +149,7 @@ func (g *Generator) generateServiceHeader() string {
 	if g.hasTx {
 		tx = "\t\"orm/" + g.DbName + "/query\"\n"
 	}
-	structStr := fmt.Sprintf("import (\n\t\"context\"\n\te \"comm/error\"\n\t\"%s\"\n%s)\n\n", g.PkgPath, tx)
+	structStr := fmt.Sprintf("import (\n\t\"context\"\n\t\"%s\"\n%s)\n\n", g.PkgPath, tx)
 	return structStr
 }
 
@@ -172,7 +171,7 @@ func (g *Generator) generateServiceMethod(s *ast.TypeSpec) string {
 		// 读取已有文件补充依赖 补充事务
 		structStr += fmt.Sprintf("func (s *%s) %s(ctx context.Context, req *%s.%s) (res *%s.%s, err error) {\n\t"+
 			"do := %s{\n%s\t}\n"+
-			"\tdefer func(){\n\t\tif err!=nil{\n\t\t\te.PrintError(err)\n\t\t}\n\t}()\n"+
+			"\tdefer func(){\n\t\tif err!=nil{\n\t\t\ts.log.PrintError(err)\n\t\t}\n\t}()\n"+
 			"%s"+
 			"\treturn do.Do(ctx, req)\n}\n\n",
 			s.Name.Name, m.Names[0].Name, g.PkgName, p.Name, g.PkgName, r.Name,
