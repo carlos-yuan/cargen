@@ -116,11 +116,7 @@ func FistToLower(str string) string {
 }
 
 func ModelToProtobuf(path, protoPkg, goPkg, modelPath, modelName string) {
-	dir, err := getImportPkg(modelPath)
-	if err != nil {
-		panic(err)
-	}
-	pkg, err := parseDir(dir, modelName)
+	pkg, err := parseDir(modelPath, modelName)
 	if err != nil {
 		panic(err)
 	}
@@ -178,7 +174,7 @@ func ModelToProtobuf(path, protoPkg, goPkg, modelPath, modelName string) {
 			protoBuf.WriteString("}\n\n")
 		}
 	}
-	dir = path + "\\" + protoPkg + "\\rpc\\" + protoPkg + "_model_gen.proto"
+	dir := path + "\\" + protoPkg + "\\rpc\\" + protoPkg + "_model_gen.proto"
 	err = WriteStringFile(dir, protoBuf.String())
 	if err != nil {
 		panic(err)

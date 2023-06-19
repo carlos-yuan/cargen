@@ -13,8 +13,8 @@ func main() {
 	flag.StringVar(&conf.Tables, "t", "", "tables")
 	flag.StringVar(&conf.DbName, "db", "", "db name")
 	flag.Parse()
-	if conf.Name == "" || conf.Path == "" {
-		panic("服务名及项目目录不能为空")
+	if conf.Path == "" {
+		panic("项目目录不能为空")
 		return
 	}
 	conf.Build()

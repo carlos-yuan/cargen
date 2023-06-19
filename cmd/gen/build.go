@@ -14,13 +14,15 @@ type Config struct {
 }
 
 func (c Config) Build() {
-	projectPath := c.Path + "/" + c.Name
+	projectPath := c.Path + "/biz/" + c.Name
 	start := time.Now().UnixMilli()
 	if c.DbDsn != "" && c.DbName != "" {
 		GormGen(c.Path, c.DbDsn, c.DbName, strings.Split(c.Tables, ","))
 	}
-	ModelToProtobuf(c.Path, c.Name, "pb", c.Path+"/orm/"+c.DbName+"/model", "model")
-	KitexGen(c.Name, c.Path)
-	CarGen(c.Name, c.DbName, c.Name+"/rpc/kitex_gen/pb", "pb", projectPath+"/service/", "service")
+	if c.Name != "" {
+		ModelToProtobuf(c.Path+"/biz", c.Name, "pb", c.Path+"/orm/"+c.DbName+"/model", "model")
+		KitexGen(c.Name, c.Path)
+		CarGen(c.Name, c.DbName, projectPath+"/rpc/kitex_gen/pb", "pb", projectPath+"/service/", "service")
+	}
 	println("Generation time:", time.Now().UnixMilli()-start)
 }

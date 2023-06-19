@@ -59,11 +59,7 @@ type ServiceField struct {
 }
 
 func (g *Generator) Run() error {
-	dir, err := getImportPkg(g.PkgPath)
-	if err != nil {
-		return err
-	}
-	pkg, err := parseDir(dir, g.PkgName)
+	pkg, err := parseDir(g.PkgPath, g.PkgName)
 	if err != nil {
 		return err
 	}
@@ -109,11 +105,7 @@ func (g *Generator) findStruct(pkg *doc.Package) []*doc.Type {
 // 刷新服务方法文件文档
 func (g *Generator) refreshServiceMethodStructDoc() {
 	//初始化 现有方法文件代码文档
-	dir, err := getImportPkg(g.DistPath)
-	if err != nil {
-		panic(err)
-	}
-	pkg, err := parseDir(dir, g.DistPkg)
+	pkg, err := parseDir(g.DistPath, g.DistPkg)
 	if err != nil {
 		panic(err)
 	}
@@ -149,7 +141,7 @@ func (g *Generator) generateServiceHeader() string {
 	if g.hasTx {
 		tx = "\t\"orm/" + g.DbName + "/query\"\n"
 	}
-	structStr := fmt.Sprintf("import (\n\t\"context\"\n\t\"%s\"\n%s)\n\n", g.PkgPath, tx)
+	structStr := fmt.Sprintf("import (\n\t\"context\"\n\t\"%s\"\n%s)\n\n", g.Model+"/rpc/kitex_gen/pb", tx)
 	return structStr
 }
 
@@ -312,7 +304,7 @@ func (g *Generator) generateMethodFileHeader() string {
 		buffer.WriteString("\n\t")
 		buffer.WriteString(field)
 	}
-	structStr := fmt.Sprintf("import (\n\t\"context\"\n\t\"%s\"%s\n)\n\n", g.PkgPath, buffer.String())
+	structStr := fmt.Sprintf("import (\n\t\"context\"\n\t\"%s\"%s\n)\n\n", g.Model+"/rpc/kitex_gen/pb", buffer.String())
 	return structStr
 }
 
