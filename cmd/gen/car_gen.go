@@ -36,7 +36,7 @@ type Generator struct {
 	DistPath           string
 	DistPkg            string
 	DbName             string
-	hasTx              bool
+	hasQuery           bool
 	ServiceFields      []ServiceField
 	MethodImports      []string
 	ServiceFiles       []ServiceFileInfo
@@ -138,7 +138,7 @@ func (g *Generator) generateServiceFile(intfs []*ast.TypeSpec) {
 // 生成服务的头部
 func (g *Generator) generateServiceHeader() string {
 	var tx string
-	if g.hasTx {
+	if g.hasQuery {
 		tx = "\t\"orm/" + g.DbName + "/query\"\n"
 	}
 	structStr := fmt.Sprintf("import (\n\t\"context\"\n\t\"%s\"\n%s)\n\n", g.Model+"/rpc/kitex_gen/pb", tx)
@@ -192,6 +192,7 @@ func (g *Generator) generateServiceMethodDoAndTx(serviceName string, field *ast.
 				case *ast.SelectorExpr:
 					expr := fd.Type.(*ast.SelectorExpr)
 					if expr.X.(*ast.Ident).Name == "query" {
+						g.hasQuery = true
 						queryFields = append(queryFields, expr.Sel.Name)
 						fieldStr.WriteString(fmt.Sprintf("\t\t%s:query.%s{I%sDo:s.Query.%s.WithContext(ctx)},\n", expr.Sel.Name, expr.Sel.Name, expr.Sel.Name[:len(expr.Sel.Name)-3], expr.Sel.Name[:len(expr.Sel.Name)-3]))
 					}
@@ -202,7 +203,6 @@ func (g *Generator) generateServiceMethodDoAndTx(serviceName string, field *ast.
 				for _, method := range sm.Methods {
 					if method.Name == "Do" {
 						if strings.Contains(method.Doc, "@TX") {
-							g.hasTx = true
 							txStr.WriteString("\ttx := s.Db().Begin()\n")
 							for _, queryField := range queryFields {
 								txStr.WriteString(fmt.Sprintf("\tdo.%s.ReplaceDB(tx)\n", queryField))
