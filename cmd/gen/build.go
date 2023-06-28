@@ -20,9 +20,9 @@ func (c Config) Build() {
 		GormGen(c.Path, c.DbDsn, c.DbName, strings.Split(c.Tables, ","))
 	}
 	if c.Name != "" {
-		ModelToProtobuf(c.Path+"/biz", c.Name, "pb", c.Path+"/orm/"+c.DbName+"/model", "model")
+		ModelToProtobuf(c.Path+"/biz", c.Name, "/"+c.Name+"pb", c.Path+"/orm/"+c.DbName+"/model", "model")
 		KitexGen(c.Name, c.Path)
-		CarGen(c.Name, c.DbName, projectPath+"/rpc/kitex_gen/pb", "pb", projectPath+"/service/", "service")
+		CarGen(c.Name, c.DbName, projectPath+"/rpc/kitex_gen/"+c.Name+"pb", c.Name+"pb", projectPath+"/service/", "service")
 	}
 	println("Generation time:", time.Now().UnixMilli()-start)
 }

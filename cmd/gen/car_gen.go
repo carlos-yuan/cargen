@@ -141,7 +141,7 @@ func (g *Generator) generateServiceHeader() string {
 	if g.hasQuery {
 		tx = "\t\"orm/" + g.DbName + "/query\"\n"
 	}
-	structStr := fmt.Sprintf("import (\n\t\"context\"\n\t\"%s\"\n%s)\n\n", g.Model+"/rpc/kitex_gen/pb", tx)
+	structStr := fmt.Sprintf("import (\n\t\"context\"\n\t\"%s\"\n%s)\n\n", g.Model+"/rpc/kitex_gen/"+g.PkgName, tx)
 	return structStr
 }
 
