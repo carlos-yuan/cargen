@@ -7,6 +7,7 @@ import (
 
 func main() {
 	conf := gen.Config{}
+	flag.StringVar(&conf.Gen, "g", "grpc", "generate type")
 	flag.StringVar(&conf.Name, "n", "", "name")
 	flag.StringVar(&conf.Path, "p", "", "path")
 	flag.StringVar(&conf.DbDsn, "d", "", "dsn")

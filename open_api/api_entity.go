@@ -1,40 +1,44 @@
-package open_api
+package openapi
 
 type OpenAPI struct {
-	Info    Info     `json:"info"`
-	Servers []Server `json:"servers"`
-	Tags    []Tag    `json:"tags"`
-	Paths   map[string]map[string]Method
-	Components
+	Info       Info                         `json:"info,omitempty"`
+	Servers    []Server                     `json:"servers,omitempty"`
+	Tags       []Tag                        `json:"tags,omitempty"`
+	Paths      map[string]map[string]Method `json:"paths,omitempty"`
+	Components Components                   `json:"components,omitempty"`
 }
 
 type Info struct {
-	Title          string `json:"title"`
-	Description    string `json:"description"`
-	Version        string `json:"version"`
-	TermsOfService string `json:"termsOfService"`
+	Title          string `json:"title,omitempty"`
+	Description    string `json:"description,omitempty"`
+	Version        string `json:"version,omitempty"`
+	TermsOfService string `json:"termsOfService,omitempty"`
 	Contact        struct {
 		Name  string `json:"name"`
 		Url   string `json:"url"`
 		Email string `json:"email"`
 	} `json:"contact"`
 	License struct {
-		Name string `json:"name"`
-		Url  string `json:"url"`
-	} `json:"license"`
+		Name string `json:"name,omitempty"`
+		Url  string `json:"url,omitempty"`
+	} `json:"license,omitempty"`
+}
+
+var DefaultInfo = Info{
+	Version: "3.1.0",
 }
 
 type Server struct {
-	Url         string `json:"url"`
-	Description string `json:"description"`
+	Url         string `json:"url,omitempty"`
+	Description string `json:"description,omitempty"`
 }
 
 type Tag struct {
-	Name         string `json:"name"`
-	Description  string `json:"description"`
+	Name         string `json:"name,omitempty"`
+	Description  string `json:"description,omitempty"`
 	ExternalDocs struct {
-		Description string `json:"description"`
-		Url         string `json:"url"`
+		Description string `json:"description,omitempty"`
+		Url         string `json:"url,omitempty"`
 	} `json:"externalDocs,omitempty"`
 }
 
@@ -44,14 +48,14 @@ type Method struct {
 	Description string   `json:"description"`
 	OperationId string   `json:"operationId"`
 	Parameters  []Parameter
-	Responses   []map[string]Response       `json:"responses"`
+	Responses   map[string]Response         `json:"responses"`
 	Security    []map[string]SecurityScheme `json:"security"`
 }
 
 type Components struct {
-	schemas string
+	Schemas map[string]Property `json:"schemas"`
 
-	responses string
+	Responses map[string]Response `json:"responses"`
 
 	Parameters []Parameter `json:"parameters"`
 
@@ -59,9 +63,9 @@ type Components struct {
 
 	requestBodies string
 
-	headers string
+	Headers map[string]Header `json:"headers"`
 
-	SecuritySchemes []map[string]SecurityScheme `json:"securitySchemes"`
+	SecuritySchemes map[string]SecurityScheme `json:"securitySchemes"`
 
 	links string
 
@@ -117,6 +121,7 @@ type Content struct {
 type Response struct {
 	Description string             `json:"description,omitempty"`
 	Content     map[string]Content `json:"content,omitempty"`
+	Headers     map[string]Header  `json:"headers,omitempty"`
 }
 
 type Header struct {

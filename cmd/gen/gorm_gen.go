@@ -11,7 +11,7 @@ func GormGen(path, dsn, name string, tables []string) {
 		OutPath:       path + "/orm/" + name + "/query",
 		Mode:          gen.WithoutContext | gen.WithDefaultQuery | gen.WithQueryInterface, // generate mode
 		FieldNullable: true,
-		ModelPkgPath:  path + "/orm/" + name + "/model",
+		ModelPkgPath:  "/model",
 	})
 	g.WithJSONTagNameStrategy(func(columnName string) (tagContent string) {
 		return ToCamelFirstLowerCase(columnName)
