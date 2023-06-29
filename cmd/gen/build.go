@@ -26,12 +26,12 @@ func (c Config) Build() {
 	if c.Gen == GenGrpc {
 		projectPath := c.Path + "/biz/" + c.Name
 		if c.Name != "" {
+			ModelToProtobuf(c.Path+"/biz", c.Name, "/pb"+c.Name, c.Path+"/orm/"+c.DbName+"/model", "model")
 			KitexGen(c.Name, c.Path)
 			CarGen(c.Name, c.DbName, projectPath+"/rpc/kitex_gen/pb"+c.Name, "pb"+c.Name, projectPath+"/service/", "service")
 		}
 	} else if c.Gen == GenDB {
 		GormGen(c.Path, c.DbDsn, c.DbName, strings.Split(c.Tables, ","))
-		ModelToProtobuf(c.Path+"/biz", c.Name, "/pb"+c.Name, c.Path+"/orm/"+c.DbName+"/model", "model")
 	} else if c.Gen == GenDoc {
 		openapi.GenFromPath(c.Path)
 	}
