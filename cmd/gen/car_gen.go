@@ -304,7 +304,7 @@ func (g *Generator) generateMethodFileHeader() string {
 		buffer.WriteString("\n\t")
 		buffer.WriteString(field)
 	}
-	structStr := fmt.Sprintf("import (\n\t\"context\"\n\t\"%s\"%s\n)\n\n", g.Model+"/rpc/kitex_gen/pb", buffer.String())
+	structStr := fmt.Sprintf("import (\n\t\"context\"\n\t\"%s\"%s\n)\n\n", g.Model+"/rpc/kitex_gen/"+g.PkgName, buffer.String())
 	return structStr
 }
 
