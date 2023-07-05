@@ -1,6 +1,7 @@
 package openapi
 
 import (
+	"encoding/json"
 	"github.com/carlos-yuan/cargen/util"
 	"go/ast"
 	gobuild "go/build"
@@ -16,58 +17,113 @@ import (
 
 // GenFromPath 通过目录生成
 func GenFromPath(base string) {
-	api := base + "/api"
-	//todo 使用gomod的名字 做分组
+	pkgs := Packages{}
+	pkgs.Init(base)
+	apis := pkgs.FindApi()
+	apis.Info.Title = "hc_enterprise_api"
+	apis.Info.Description = "hc_enterprise_api"
+	apis.Info.Version = "v0.0.1"
+	b, _ := json.Marshal(apis)
+	println(string(b))
+}
+
+type Packages []Package
+
+func (pkgs *Packages) Init(base string) {
 	files, err := GetFilePath(base, "go.mod")
 	if err != nil {
 		log.Fatal(err)
 	}
 	for _, file := range files {
-		println(file)
+		goModFilePathData, _ := os.ReadFile(file)
+		modFile, _ := modfile.Parse("go.mod", goModFilePathData, nil)
+		path, err := util.CutPathLast(file, 1)
+		if err != nil {
+			continue
+		}
+		pathChild, err := GetAllPath(path)
+		if err != nil {
+			continue
+		}
+		for _, s := range pathChild {
+			pkg := modFile.Module.Mod.Path + "/" + s[len(path)+1:]
+			pkg = strings.ReplaceAll(pkg, "\\", "/")
+			packages := GenApi(pkg, s, CreatePackageOpt{NeedApi: true})
+			*pkgs = append(*pkgs, packages...)
+		}
 	}
-	goModFilePathData, _ := os.ReadFile(base + "/biz/dict/go.mod")
-	modFile, _ := modfile.Parse("go.mod", goModFilePathData, nil)
-	println(modFile.Module.Mod.Path)
-	fs, err := os.ReadDir(base)
-	if err != nil {
-		log.Fatal(err)
-	}
-	for _, f := range fs {
-		println(f.Name())
-	}
-	//获取api模块目录
-	fs, err = os.ReadDir(api)
-	if err != nil {
-		log.Fatal(err)
-	}
-	var pkgs []Package
-	for _, f := range fs {
-		if f.IsDir() {
-			ctl := api + "/" + f.Name() + "/controller"
-			fs, err := os.ReadDir(ctl)
-			if err != nil {
-				log.Fatal(err)
-			}
-			for _, f := range fs {
-				if f.IsDir() {
-					packages := GenApi(base, ctl+"/"+f.Name(), CreatePackageOpt{NeedApi: true})
-					pkgs = append(pkgs, packages...)
+}
+
+func (pkgs *Packages) FindApi() OpenAPI {
+	api := DefaultInfo
+	api.Paths = make(map[string]map[string]Method)
+	var apiTags = make(map[string]string)
+	for _, p := range *pkgs {
+		if len(p.Api) > 0 {
+			apiTags[p.Name] = p.Name
+			for _, a := range p.Api {
+				name := "/" + util.FistToLower(a.Group) + "/" + util.FistToLower(a.Name)
+				if a.RequestPath != "" {
+					name = a.RequestPath
 				}
+				if api.Paths[name] == nil {
+					api.Paths[name] = make(map[string]Method)
+				}
+				method := Method{Tags: []string{p.Name}, OperationId: p.Path + "." + a.Name + "." + a.HttpMethod, Summary: a.Summary}
+				var jsonFields []Field
+				var xmlFields []Field
+				var yamlFields []Field
+				var combination []Field //组合参数
+				for _, f := range a.Params.Fields {
+					switch f.In {
+					case TagParamJson:
+						jsonFields = append(jsonFields, f)
+					case TagParamXml:
+						xmlFields = append(xmlFields, f)
+					case TagParamYaml:
+						yamlFields = append(yamlFields, f)
+					default:
+						if f.Name == "" {
+							combination = append(combination, f)
+						} else {
+							method.Parameters = append(method.Parameters, f.ToParameter())
+						}
+					}
+				}
+				if (len(jsonFields) > 0 && len(xmlFields) > 0) || (len(jsonFields) > 0 && len(yamlFields) > 0) || (len(yamlFields) > 0 && len(xmlFields) > 0) {
+					log.Fatal("generator documentation error for api " + method.OperationId + " to many request types")
+				}
+				if len(jsonFields) > 0 {
+					properties := make(map[string]Property)
+					for _, field := range jsonFields {
+						for _, property := range field.ToProperty() {
+							properties[property.Name] = property
+						}
+					}
+					for _, field := range combination {
+						for _, property := range field.ToProperty() {
+							properties[property.Name] = property
+						}
+					}
+					method.RequestBody = RequestBody{Content: map[string]Content{"application/json": {Type: PropertyTypeObject, Schema: Property{Type: PropertyTypeObject, Properties: properties}}}}
+				}
+				api.Paths[name][a.HttpMethod] = method
 			}
 		}
 	}
-	//查找所有导入的包，加载参数依赖
-	var refPkg = make(map[string][]Package)
-	var refPkgPath = make(map[string]string)
-	for _, pkg := range pkgs {
-		for pkg, path := range pkg.Imports {
-			refPkgPath[pkg] = path
+	for _, tag := range util.MapToSplice(apiTags) {
+		api.Tags = append(api.Tags, Tag{Name: tag})
+	}
+	return api
+}
+
+func (pkgs *Packages) Find(pkgPath string) *Package {
+	for _, pkg := range *pkgs {
+		if pkg.Path == pkgPath {
+			return &pkg
 		}
 	}
-	for _, path := range refPkgPath {
-		refPkg[path] = GenApi(base, base+"/"+path)
-	}
-	println(len(pkgs))
+	return nil
 }
 
 func GetFilePath(filepath string, fileName string) ([]string, error) {
@@ -93,6 +149,27 @@ func GetFilePath(filepath string, fileName string) ([]string, error) {
 	return paths, nil
 }
 
+func GetAllPath(path string) ([]string, error) {
+	infos, err := os.ReadDir(path)
+	if err != nil {
+		return nil, err
+	}
+	paths := make([]string, 0, len(infos))
+	for _, info := range infos {
+		path := path + string(os.PathSeparator) + info.Name()
+		if info.IsDir() {
+			tmp, err := GetAllPath(path)
+			if err != nil {
+				return nil, err
+			}
+			paths = append(paths, tmp...)
+			paths = append(paths, path)
+			continue
+		}
+	}
+	return paths, nil
+}
+
 var docs = make(map[string]doc.Package) //map[路径包名]文档 缓存已加载的文档
 var linkPath = make(map[string]string)  //map[路径包名]文档 缓存已加载的文档
 
@@ -100,6 +177,7 @@ type Api struct {
 	Name         string `json:"name"`         //接口地址
 	Summary      string `json:"summary"`      //名称
 	Description  string `json:"description"`  //描述
+	RequestPath  string `json:"request_path"` //自定义路径
 	Point        string `json:"point"`        //接口结构体对象名称
 	Group        string `json:"group"`        //接口结构体名称
 	HttpMethod   string `json:"method"`       //接口http方法
@@ -129,19 +207,9 @@ type StructMethod struct {
 	Returns []Field //返回值
 }
 
-type Field struct {
-	Name    string `json:"name"`    //名称
-	Type    string `json:"type"`    //类型
-	Tag     string `json:"tag"`     //tag
-	Pkg     string `json:"pkg"`     //包名 类型为结构体时
-	PkgPath string `json:"pkgPath"` //包路径 类型为结构体时
-	Comment string `json:"comment"` //注释
-	Struct  Struct `json:"struct"`  //是结构体时
-}
-
 const (
 	AnnotateSplitChar = "|"
-	AuthStart         = "Auth:"
+	AuthStart         = "auth:"
 
 	ResponseTypeJSON  = "json"
 	ResponseTypeXML   = "xml"
@@ -176,15 +244,22 @@ func (a *Api) AnalysisAnnotate() {
 		annotate = strings.TrimSpace(annotate)
 		for _, s := range APIMethods {
 			if s == annotate {
-				a.HttpMethod += s + " "
+				a.HttpMethod = s
+				break
 			}
+		}
+		if a.HttpMethod == annotate {
+			a.HttpMethod = strings.ToLower(a.HttpMethod)
+			continue
 		}
 		if strings.Index(annotate, AuthStart) == 0 {
 			a.Auth += strings.ReplaceAll(annotate, AuthStart, "") + " "
+			continue
 		}
 		for _, s := range AuthType {
 			if s == annotate {
 				a.Auth += s + " "
+				continue
 			}
 		}
 		for _, s := range ResponseType {
@@ -193,9 +268,13 @@ func (a *Api) AnalysisAnnotate() {
 				break
 			}
 		}
+		if a.ResponseType == annotate {
+			continue
+		}
 		if a.ResponseType == "" {
 			a.ResponseType = ResponseTypeJSON
 		}
+		a.RequestPath = annotate
 	}
 }
 
@@ -204,8 +283,7 @@ type Document struct {
 	Imports map[string]Package
 }
 
-func GenApi(base, path string, opt ...CreatePackageOpt) []Package {
-	importPath := path[len(base)+1:]
+func GenApi(pkgPath, path string, opt ...CreatePackageOpt) []Package {
 	pkgs, err := util.GetPackages(path)
 	if err != nil {
 		fserr, ok := err.(*fs.PathError)
@@ -221,7 +299,7 @@ func GenApi(base, path string, opt ...CreatePackageOpt) []Package {
 	}
 	var list []Package
 	for _, pkg := range pkgs {
-		list = append(list, CreatePackage(pkg, importPath, opt...))
+		list = append(list, CreatePackage(pkg, pkgPath, opt...))
 	}
 	return list
 }
@@ -233,88 +311,6 @@ func getImportPkg(pkg, srcDir string) (string, error) {
 	}
 	return p.Dir, err
 
-}
-
-type Package struct {
-	Name    string            //包名
-	Path    string            //包路径
-	Mod     string            //模型名 分组用
-	Imports map[string]string //包下所有导入的包信息
-	Structs []Struct          //所有结构体信息
-	Api     []Api             //所有API接口信息
-}
-
-type CreatePackageOpt struct {
-	NeedApi    bool
-	NeedMethod bool
-}
-
-func CreatePackage(p *ast.Package, importPath string, opt ...CreatePackageOpt) Package {
-	pkg := Package{Name: p.Name, Path: importPath, Imports: make(map[string]string)}
-	for fp, file := range p.Files {
-		//找到导入的定义
-		for _, spec := range file.Imports {
-			path := strings.ReplaceAll(spec.Path.Value, `"`, "")
-			if spec.Name == nil {
-				pkg.Imports[util.LastName(path)] = path
-			} else {
-				pkg.Imports[spec.Name.Name] = path
-			}
-		}
-		if file.Scope != nil {
-			for _, obj := range file.Scope.Objects {
-				s := Struct{Name: obj.Name, Pkg: pkg.Name, PkgPath: pkg.Path}
-				if obj.Decl != nil {
-					ts, ok := obj.Decl.(*ast.TypeSpec)
-					if ok {
-						st, ok := ts.Type.(*ast.StructType)
-						if ok {
-							for _, fd := range st.Fields.List {
-								s.Fields = append(s.Fields, pkg.FieldFromAstField(fd))
-							}
-						}
-					}
-				}
-				pkg.Structs = append(pkg.Structs, s)
-			}
-		}
-		//查找API定义
-		if len(opt) == 1 && opt[0].NeedApi {
-			for _, decl := range file.Decls {
-				fc, ok := decl.(*ast.FuncDecl)
-				if ok {
-					if fc.Doc != nil {
-						api := Api{Name: fc.Name.Name, Path: fp, pkg: &pkg}
-						if len(fc.Recv.List) == 1 {
-							api.Point, _, api.Group = GetFieldInfo(fc.Recv.List[0])
-						}
-						for _, doc := range fc.Doc.List {
-							str := strings.TrimSpace(doc.Text)
-							str = strings.TrimPrefix(str, `//`)
-							str = strings.TrimSpace(str)
-							if api.Summary == "" && strings.Index(str, api.Name) == 0 {
-								api.Summary = strings.ReplaceAll(str, api.Name, "")
-							} else if api.Annotate == "" && strings.Index(str, "@") == 0 {
-								api.Annotate = str[1:]
-							} else {
-								api.Description += str
-							}
-						}
-						api.CreateApiParameter(fc.Body)
-						api.AnalysisAnnotate()
-						if api.HttpMethod != "" {
-							pkg.Api = append(pkg.Api, api)
-						}
-					}
-				}
-			}
-		}
-		//查找Method定义
-		if len(opt) == 1 && opt[0].NeedMethod {
-			//todo 用于加载返回值依赖
-		}
-	}
-	return pkg
 }
 
 func (a *Api) CreateApiParameter(body *ast.BlockStmt) {
@@ -352,33 +348,6 @@ func (a *Api) CreateApiParameter(body *ast.BlockStmt) {
 			}
 		}
 	}
-}
-
-func (pkg *Package) GetStructFromAstStructType(s *ast.StructType) Struct {
-	sct := Struct{Pkg: pkg.Name, PkgPath: pkg.Path}
-	if s != nil {
-		for _, fd := range s.Fields.List {
-			f := pkg.FieldFromAstField(fd)
-			if f.Type == ExprStruct {
-				f.Struct = pkg.GetStructFromAstStructType(fd.Type.(*ast.StructType))
-			}
-			sct.Fields = append(sct.Fields, f)
-		}
-	}
-	return sct
-}
-
-func (pkg *Package) FieldFromAstField(fd *ast.Field) Field {
-	f := Field{}
-	f.Name, f.Pkg, f.Type = GetFieldInfo(fd)
-	if f.Pkg != "" {
-		f.PkgPath = pkg.Imports[f.Pkg]
-	}
-	if fd.Tag != nil {
-		f.Tag = fd.Tag.Value
-	}
-	f.Comment = FormatComment(fd.Comment)
-	return f
 }
 
 func GetFieldInfo(field *ast.Field) (name, pkg, typ string) {
