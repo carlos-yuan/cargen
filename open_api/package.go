@@ -3,8 +3,31 @@ package openapi
 import (
 	"github.com/carlos-yuan/cargen/util"
 	"go/ast"
+	"io/fs"
 	"strings"
+	"syscall"
 )
+
+func GenApi(pkgPath, path string, opt ...CreatePackageOpt) []Package {
+	pkgs, err := util.GetPackages(path)
+	if err != nil {
+		fserr, ok := err.(*fs.PathError)
+		if ok {
+			if fserr.Err == syscall.ENOTDIR {
+
+			} else {
+				panic(err)
+			}
+		} else {
+			panic(err)
+		}
+	}
+	var list []Package
+	for _, pkg := range pkgs {
+		list = append(list, CreatePackage(pkg, pkgPath, opt...))
+	}
+	return list
+}
 
 type Package struct {
 	Name    string            //包名
@@ -70,8 +93,10 @@ func CreatePackage(p *ast.Package, pkgPath string, opt ...CreatePackageOpt) Pack
 								api.Description += str
 							}
 						}
-						api.CreateApiParameter(fc.Body)
-						api.AnalysisAnnotate()
+						if api.Annotate != "" {
+							api.CreateApiParameter(fc.Body)
+							api.AnalysisAnnotate()
+						}
 						if api.HttpMethod != "" {
 							pkg.Api = append(pkg.Api, api)
 						}
@@ -108,7 +133,11 @@ func (pkg *Package) GetStructFromAstStructType(s *ast.StructType) Struct {
 						if ok {
 							ts, ok := si.Obj.Decl.(*ast.TypeSpec)
 							if ok {
-								f.Struct = pkg.GetStructFromAstStructType(ts.Type.(*ast.StructType))
+								if at, ok := ts.Type.(*ast.ArrayType); ok {
+									f.Struct = Struct{Name: GetArrayType(at)} //todo 需要查找具体定义
+								} else if st, ok := ts.Type.(*ast.StructType); ok {
+									f.Struct = pkg.GetStructFromAstStructType(st)
+								}
 							}
 						}
 					}
@@ -118,6 +147,18 @@ func (pkg *Package) GetStructFromAstStructType(s *ast.StructType) Struct {
 		}
 	}
 	return sct
+}
+
+func GetArrayType(at *ast.ArrayType) string {
+	switch expr := at.Elt.(type) {
+	case *ast.Ident:
+		return expr.Name
+	case *ast.SelectorExpr:
+		return expr.X.(*ast.Ident).Name + "." + expr.Sel.Name
+	case *ast.StarExpr:
+		return expr.X.(*ast.Ident).Name
+	}
+	return ""
 }
 
 func (pkg *Package) FieldFromAstField(fd *ast.Field) Field {

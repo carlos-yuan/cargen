@@ -27,6 +27,13 @@ type Info struct {
 
 var DefaultInfo = OpenAPI{
 	Openapi: "3.0.0",
+	Components: Components{
+		Schemas:         make(map[string]Property),
+		Responses:       make(map[string]Response),
+		Headers:         make(map[string]Header),
+		RequestBodies:   make(map[string]RequestBody),
+		SecuritySchemes: make(map[string]SecurityScheme),
+	},
 }
 
 type Server struct {
@@ -74,6 +81,30 @@ type Components struct {
 	callbacks string
 }
 
+func (c Components) GetSchemasName() string {
+	return "#/components/schemas/"
+}
+
+func (c Components) GetResponsesName() string {
+	return "#/components/responses/"
+}
+
+func (c Components) GetParametersName() string {
+	return "#/components/parameters/"
+}
+
+func (c Components) GetRequestBodiesName() string {
+	return "#/components/requestBodies/"
+}
+
+func (c Components) GetHeadersName() string {
+	return "#/components/headers/"
+}
+
+func (c Components) GetSecuritySchemesName() string {
+	return "#/components/securitySchemes/"
+}
+
 type SecurityScheme struct {
 	Type        string `json:"type"`
 	Description string `json:"description"`
@@ -87,7 +118,7 @@ type Flow struct {
 }
 
 type Property struct {
-	Name        string              `json:"name,omitempty"`
+	Name        string              `json:"-"`
 	Type        string              `json:"type,omitempty"`
 	Description string              `json:"description,omitempty"`
 	Format      string              `json:"format,omitempty"`
@@ -118,6 +149,7 @@ type RequestBody struct {
 	Description string             `json:"description,omitempty"`
 	Required    bool               `json:"required,omitempty"`
 	Content     map[string]Content `json:"content,omitempty"`
+	Ref         string             `json:"$ref,omitempty"`
 }
 
 type Content struct {
