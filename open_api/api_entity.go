@@ -34,6 +34,7 @@ var DefaultInfo = OpenAPI{
 		RequestBodies:   make(map[string]RequestBody),
 		SecuritySchemes: make(map[string]SecurityScheme),
 	},
+	Paths: make(map[string]map[string]Method),
 }
 
 type Server struct {
@@ -59,6 +60,7 @@ type Method struct {
 	RequestBody RequestBody                 `json:"requestBody"`
 	Responses   map[string]Response         `json:"responses"`
 	Security    []map[string]SecurityScheme `json:"security"`
+	api         *OpenAPI
 }
 
 type Components struct {

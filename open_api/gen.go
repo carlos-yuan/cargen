@@ -3,8 +3,8 @@ package openapi
 import (
 	"encoding/json"
 	"github.com/carlos-yuan/cargen/util"
-	"go/doc"
 	"golang.org/x/mod/modfile"
+	"log"
 	"os"
 	"strings"
 )
@@ -42,7 +42,7 @@ func (pkgs *Packages) Init(base string) {
 		for _, s := range pathChild {
 			pkg := modFile.Module.Mod.Path + "/" + s[len(path)+1:]
 			pkg = strings.ReplaceAll(pkg, "\\", "/")
-			packages := GenApi(pkg, s, CreatePackageOpt{NeedApi: true})
+			packages := pkgs.GenApi(pkg, s)
 			*pkgs = append(*pkgs, packages...)
 		}
 	}
@@ -50,69 +50,24 @@ func (pkgs *Packages) Init(base string) {
 
 func (pkgs *Packages) FindApi() OpenAPI {
 	api := DefaultInfo
-	api.Paths = make(map[string]map[string]Method)
 	var apiTags = make(map[string]string)
 	for _, p := range *pkgs {
-		if len(p.Api) > 0 {
-			var structApi = make(map[string]string)
-			for _, a := range p.Api {
-				structApi[a.Group] = a.Group
-			}
-			for k, _ := range structApi {
-				for _, s := range p.Structs {
-					if k == s.Name {
-						pkgs.GetMethodMap(s)
+		for _, s := range p.Structs {
+			if len(s.Api) > 0 {
+				apiTags[p.Name] = p.Name
+				for _, a := range s.Api {
+					name := "/" + util.FistToLower(a.Group) + "/" + util.FistToLower(a.Name)
+					if a.RequestPath != "" {
+						name = a.RequestPath
 					}
-				}
-			}
-			apiTags[p.Name] = p.Name
-			for _, a := range p.Api {
-				name := "/" + util.FistToLower(a.Group) + "/" + util.FistToLower(a.Name)
-				if a.RequestPath != "" {
-					name = a.RequestPath
-				}
-				if api.Paths[name] == nil {
-					api.Paths[name] = make(map[string]Method)
-				}
-				method := Method{Tags: []string{p.Name}, OperationId: a.GetOperationId(), Summary: a.Summary}
-				var jsonFields []Field
-				var xmlFields []Field
-				var yamlFields []Field
-				var combination []Field //组合参数
-				for _, f := range a.Params.Fields {
-					switch f.In {
-					case TagParamJson:
-						jsonFields = append(jsonFields, f)
-					case TagParamXml:
-						xmlFields = append(xmlFields, f)
-					case TagParamYaml:
-						yamlFields = append(yamlFields, f)
-					default:
-						if f.Name == "" {
-							combination = append(combination, f)
-						} else {
-							method.Parameters = append(method.Parameters, f.ToParameter())
-						}
+					if api.Paths[name] == nil {
+						api.Paths[name] = make(map[string]Method)
 					}
+					method := Method{Tags: []string{p.Name}, OperationId: a.GetOperationId(), Summary: a.Summary, api: &api}
+					a.FillRequestParams(&method)
+					a.FillResponse(&method)
+					api.Paths[name][a.HttpMethod] = method
 				}
-				if (len(jsonFields) > 0 && len(xmlFields) > 0) || (len(jsonFields) > 0 && len(yamlFields) > 0) || (len(yamlFields) > 0 && len(xmlFields) > 0) {
-					panic("generator documentation error for api " + method.OperationId + " to many request types")
-				}
-				if len(jsonFields) > 0 {
-					properties := make(map[string]Property)
-					for _, field := range jsonFields {
-						for _, property := range field.ToProperty() {
-							properties[property.Name] = property
-						}
-					}
-					for _, field := range combination {
-						for _, property := range field.ToProperty() {
-							properties[property.Name] = property
-						}
-					}
-					method.RequestBody = RequestBody{Content: map[string]Content{"application/json": {Schema: Property{Type: PropertyTypeObject, Properties: properties}}}}
-				}
-				api.Paths[name][a.HttpMethod] = method
 			}
 		}
 	}
@@ -122,8 +77,96 @@ func (pkgs *Packages) FindApi() OpenAPI {
 	return api
 }
 
-func (pkgs *Packages) GetMethodMap(s Struct) {
+func (pkgs *Packages) FindParams(m MethodMap) *Struct {
+	if len(m.Paths) == 0 {
+		return nil
+	}
+	for _, p := range *pkgs {
+		if p.Path == m.Paths[len(m.Paths)-1] && p.Name == m.Paths[len(m.Paths)-2] { //匹配包名
+			if len(m.Paths) > 2 {
+				for _, s := range p.Structs {
+					if s.Name == m.Paths[len(m.Paths)-3] { //匹配结构体名
+						if len(m.Paths) > 3 {
+							var sm *StructMethod
+							for _, method := range s.Methods {
+								if method.Name == m.Paths[len(m.Paths)-4] {
+									sm = &method
+								}
+							}
+							if sm == nil { //可能是组合调用 需要继续寻找更深层结构体的方法
+								for _, field := range s.Fields {
+									return pkgs.DeepFindParams(m.Idx, m.Paths[:len(m.Paths)-3], field)
+								}
+							} else {
+								field := sm.Returns[m.Idx]
+								if baseTypes.CheckIn(field.Type) {
+									return &Struct{Type: field.Type}
+								} else {
+									return pkgs.FindStruct(field.PkgPath, field.Pkg, field.Name)
+								}
+							}
+						} else {
+							log.Printf("path too short " + m.Paths[len(m.Paths)-1] + "." + m.Paths[len(m.Paths)-2] + "." + m.Paths[len(m.Paths)-3])
+						}
+						break
+					}
+				}
+			} else {
+				log.Printf("path too short " + m.Paths[len(m.Paths)-1] + "." + m.Paths[len(m.Paths)-2])
+			}
+			break
+		}
+	}
+	return nil
+}
 
+func (pkgs *Packages) DeepFindParams(idx int, paths []string, field Field) *Struct {
+	if baseTypes.CheckIn(field.Type) {
+		return nil
+	}
+	isComplex := field.Name == "" //组合结构体
+	s := pkgs.FindStruct(field.PkgPath, field.Pkg, field.Type)
+	if s == nil {
+		return nil
+	}
+	var m *StructMethod
+	for _, method := range s.Methods {
+		if isComplex { //组合匹配
+			if method.Name == paths[0] {
+				m = &method
+			}
+		} else {
+			if field.Name == paths[len(paths)-1] { //字段名匹配
+				if method.Name == paths[len(paths)-2] { //匹配字段结构体方法
+					m = &method
+				}
+			}
+		}
+	}
+	if m == nil {
+		for _, field := range s.Fields {
+			return pkgs.DeepFindParams(idx, paths, field)
+		}
+	} else {
+		if len(m.Returns) > idx {
+			field := m.Returns[idx]
+			if baseTypes.CheckIn(field.Type) {
+				return &Struct{Type: field.Type}
+			} else {
+				return pkgs.FindStruct(field.PkgPath, field.Pkg, field.Type)
+			}
+		}
+	}
+	return nil
+}
+
+func (pkgs *Packages) FindStruct(path, pkg, name string) *Struct {
+	for _, p := range *pkgs {
+		if p.Path == path && p.Name == pkg {
+			return p.Structs[name]
+		}
+	}
+	return nil
 }
 
 func GetFilePath(filepath string, fileName string) ([]string, error) {
@@ -169,6 +212,3 @@ func GetAllPath(path string) ([]string, error) {
 	}
 	return paths, nil
 }
-
-var docs = make(map[string]doc.Package) //map[路径包名]文档 缓存已加载的文档
-var linkPath = make(map[string]string)  //map[路径包名]文档 缓存已加载的文档

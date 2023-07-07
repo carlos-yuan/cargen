@@ -1,6 +1,7 @@
 package openapi
 
 import (
+	"github.com/carlos-yuan/cargen/util"
 	"reflect"
 	"strings"
 )
@@ -55,7 +56,7 @@ func GetTagInfo(fieldTag string) (tag, name, validate string) {
 			if tag == TagParamPath {
 				tag = OpenApiInPath
 			}
-			name = val
+			name = util.GetJsonNameFromTag(val)
 		}
 	}
 	validate = st.Get(TagValidate)
@@ -67,7 +68,7 @@ var boolTypes = BaseType{"bool"}
 var numberTypes = BaseType{"float32", "float64"}
 var stringTypes = BaseType{"string"}
 
-var baseTypes = BaseType{"bool", "uint8", "uint16", "uint32", "uint64", "int8", "int16", "int32", "int64", "float32", "float64", "string", "int", "byte", "rune"}
+var baseTypes = BaseType{"interface{}", "error", "any", "bool", "uint8", "uint16", "uint32", "uint64", "int8", "int16", "int32", "int64", "float32", "float64", "string", "int", "byte", "rune"}
 
 type BaseType []string
 

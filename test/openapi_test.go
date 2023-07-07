@@ -7,5 +7,4 @@ import (
 
 func TestOpenApi(t *testing.T) {
 	openapi.GenFromPath("D:\\carlos\\hc_enterprise_server")
-
 }

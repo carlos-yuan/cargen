@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"sort"
 	"strconv"
+	"strings"
 )
 
 func ToJsonString(js interface{}) string {
@@ -25,7 +26,7 @@ func PrintJson(js interface{}) {
 func MapToAssciiSortJson(m map[string]interface{}) string {
 	i := 0
 	keys := make([]string, len(m))
-	for k, _ := range m {
+	for k := range m {
 		keys[i] = k
 		i++
 	}
@@ -83,4 +84,11 @@ func MapToAssciiSortJson(m map[string]interface{}) string {
 	}
 	buffer.WriteString("}")
 	return buffer.String()
+}
+
+func GetJsonNameFromTag(tag string) string {
+	if strings.Index(tag, ",") != -1 {
+		return tag[:strings.Index(tag, ",")]
+	}
+	return tag
 }
