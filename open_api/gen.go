@@ -46,6 +46,8 @@ func (pkgs *Packages) Init(base string) {
 			*pkgs = append(*pkgs, packages...)
 		}
 	}
+	//填充字段为结构体的依赖
+	pkgs.FillPkgRelationStruct()
 }
 
 func (pkgs *Packages) FindApi() OpenAPI {
@@ -77,9 +79,11 @@ func (pkgs *Packages) FindApi() OpenAPI {
 	return api
 }
 
-func (pkgs *Packages) FindParams(m MethodMap) *Struct {
-	if len(m.Paths) == 0 {
-		return nil
+// FindInMethodMapParams 从调用链获取返回参数
+func (pkgs *Packages) FindInMethodMapParams(sct *Struct) {
+	m := sct.MethodMap
+	if m == nil || len(m.Paths) == 0 { //非方法调用
+		return
 	}
 	for _, p := range *pkgs {
 		if p.Path == m.Paths[len(m.Paths)-1] && p.Name == m.Paths[len(m.Paths)-2] { //匹配包名
@@ -88,22 +92,32 @@ func (pkgs *Packages) FindParams(m MethodMap) *Struct {
 					if s.Name == m.Paths[len(m.Paths)-3] { //匹配结构体名
 						if len(m.Paths) > 3 {
 							var sm *StructMethod
-							for _, method := range s.Methods {
+							for i, method := range s.Methods {
 								if method.Name == m.Paths[len(m.Paths)-4] {
-									sm = &method
+									sm = &s.Methods[i]
 								}
 							}
+							var st *Struct
 							if sm == nil { //可能是组合调用 需要继续寻找更深层结构体的方法
 								for _, field := range s.Fields {
-									return pkgs.DeepFindParams(m.Idx, m.Paths[:len(m.Paths)-3], field)
+									st = pkgs.DeepFindParams(m.Idx, m.Paths[:len(m.Paths)-3], field)
+									if st != nil {
+										break
+									}
 								}
 							} else {
 								field := sm.Returns[m.Idx]
 								if baseTypes.CheckIn(field.Type) {
-									return &Struct{Type: field.Type}
+									sct.Type = field.Type
 								} else {
-									return pkgs.FindStruct(field.PkgPath, field.Pkg, field.Name)
+									st = pkgs.FindStruct(field.PkgPath, field.Pkg, field.Name)
 								}
+							}
+							if st != nil {
+								sct.Fields = st.Fields
+								sct.Des = st.Des
+								sct.Name = st.Name
+								sct.Type = st.Type
 							}
 						} else {
 							log.Printf("path too short " + m.Paths[len(m.Paths)-1] + "." + m.Paths[len(m.Paths)-2] + "." + m.Paths[len(m.Paths)-3])
@@ -117,9 +131,9 @@ func (pkgs *Packages) FindParams(m MethodMap) *Struct {
 			break
 		}
 	}
-	return nil
 }
 
+// DeepFindParams 深度查找参数
 func (pkgs *Packages) DeepFindParams(idx int, paths []string, field Field) *Struct {
 	if baseTypes.CheckIn(field.Type) {
 		return nil
@@ -134,18 +148,23 @@ func (pkgs *Packages) DeepFindParams(idx int, paths []string, field Field) *Stru
 		if isComplex { //组合匹配
 			if method.Name == paths[0] {
 				m = &method
+				break
 			}
 		} else {
 			if field.Name == paths[len(paths)-1] { //字段名匹配
 				if method.Name == paths[len(paths)-2] { //匹配字段结构体方法
 					m = &method
+					break
 				}
 			}
 		}
 	}
 	if m == nil {
 		for _, field := range s.Fields {
-			return pkgs.DeepFindParams(idx, paths, field)
+			st := pkgs.DeepFindParams(idx, paths, field)
+			if st != nil {
+				return st
+			}
 		}
 	} else {
 		if len(m.Returns) > idx {
@@ -163,7 +182,8 @@ func (pkgs *Packages) DeepFindParams(idx int, paths []string, field Field) *Stru
 func (pkgs *Packages) FindStruct(path, pkg, name string) *Struct {
 	for _, p := range *pkgs {
 		if p.Path == path && p.Name == pkg {
-			return p.Structs[name]
+			s := p.Structs[name]
+			return s
 		}
 	}
 	return nil

@@ -2,9 +2,11 @@ package openapi
 
 import (
 	"bytes"
+	"github.com/carlos-yuan/cargen/util"
 	"go/ast"
 	"go/format"
 	"go/token"
+	"log"
 	"net/http"
 	"strings"
 )
@@ -37,36 +39,6 @@ func (a *Api) GetApiPath() string {
 func (a *Api) NewStruct() *Struct {
 	s := NewStruct(a.sct.pkg)
 	return &s
-}
-
-type Struct struct {
-	Name      string            `json:"name"`      //名称
-	Des       string            `json:"des"`       //描述
-	Type      string            `json:"type"`      //结构体类型
-	Field     string            `json:"field"`     //所需字段 有时可能需要的是结构体中的字段 如：rsp.List
-	Fields    []Field           `json:"fields"`    //字段
-	MethodMap *MethodMap        `json:"methodMap"` //map[参数位置][]链路 方法的返回值类型查找
-	Imports   map[string]string //包下所有导入的包信息
-	Methods   []StructMethod    `json:"methods"` //方法列表 包括接口的方法
-	Api       []Api             //所有API接口信息
-	pkg       *Package
-}
-
-type MethodMap struct {
-	Idx   int
-	Paths []string
-}
-
-func NewStruct(pkg *Package) Struct {
-	return Struct{pkg: pkg}
-}
-
-type StructMethod struct {
-	Name    string  //名称
-	Pkg     string  //包名
-	PkgPath string  //包路径
-	Args    []Field //参数
-	Returns []Field //返回值
 }
 
 const (
@@ -141,9 +113,10 @@ func (a *Api) AnalysisAnnotate() {
 	}
 }
 
+// CreateApiParameter 构建API基础参数
 func (a *Api) CreateApiParameter(body *ast.BlockStmt) {
 	for _, line := range body.List {
-		//寻找t.Bind
+		//寻找t.Bind(&params)
 		expr, ok := line.(*ast.ExprStmt)
 		if ok {
 			if call, ok := expr.X.(*ast.CallExpr); ok {
@@ -156,8 +129,9 @@ func (a *Api) CreateApiParameter(body *ast.BlockStmt) {
 				}
 			}
 		} else {
-			//寻找 return t.Success
-			if rtn, ok := line.(*ast.ReturnStmt); ok {
+			//寻找 return t.Success(rsp)
+			returns := FindReturnInBlockStmt(line)
+			for _, rtn := range returns {
 				if call, ok := rtn.Results[0].(*ast.CallExpr); ok {
 					if method, ok := call.Fun.(*ast.SelectorExpr); ok {
 						if id, ok := method.X.(*ast.Ident); ok {
@@ -170,6 +144,51 @@ func (a *Api) CreateApiParameter(body *ast.BlockStmt) {
 			}
 		}
 	}
+}
+
+func FindReturnInBlockStmt(stmt ast.Stmt) []*ast.ReturnStmt {
+	var ret []*ast.ReturnStmt
+	switch st := stmt.(type) {
+	case *ast.ReturnStmt:
+		ret = append(ret, st)
+	case *ast.IfStmt:
+		if st.Body != nil {
+			for _, s := range st.Body.List {
+				ret = append(ret, FindReturnInBlockStmt(s)...)
+			}
+		}
+	case *ast.SwitchStmt:
+		if st.Body != nil {
+			for _, s := range st.Body.List {
+				ret = append(ret, FindReturnInBlockStmt(s)...)
+			}
+		}
+	case *ast.ForStmt:
+		if st.Body != nil {
+			for _, s := range st.Body.List {
+				ret = append(ret, FindReturnInBlockStmt(s)...)
+			}
+		}
+	case *ast.TypeSwitchStmt:
+		if st.Body != nil {
+			for _, s := range st.Body.List {
+				ret = append(ret, FindReturnInBlockStmt(s)...)
+			}
+		}
+	case *ast.SelectStmt:
+		if st.Body != nil {
+			for _, s := range st.Body.List {
+				ret = append(ret, FindReturnInBlockStmt(s)...)
+			}
+		}
+	case *ast.RangeStmt:
+		if st.Body != nil {
+			for _, s := range st.Body.List {
+				ret = append(ret, FindReturnInBlockStmt(s)...)
+			}
+		}
+	}
+	return ret
 }
 
 func (a *Api) GetParameterStruct(expr ast.Expr) *Struct {
@@ -239,20 +258,19 @@ func (a *Api) GetParameterStruct(expr ast.Expr) *Struct {
 }
 
 func (a *Api) GetResponseStruct(expr ast.Expr) {
-	switch expr := expr.(type) {
+	switch exp := expr.(type) {
 	case *ast.Ident: // t.Success(rsp)
 		a.Response = a.NewStruct()
-		a.Response.Name = expr.Name
-		if expr.Obj != nil {
-			if decl, ok := expr.Obj.Decl.(*ast.AssignStmt); ok {
-				index := FindRspIndex(expr.Name, decl.Lhs)
+		a.Response.Name = exp.Name
+		if exp.Obj != nil {
+			if decl, ok := exp.Obj.Decl.(*ast.AssignStmt); ok {
+				index := FindRspIndex(exp.Name, decl.Lhs)
 				a.Response.MethodMap = &MethodMap{Idx: index, Paths: a.FindRspMethodMap(decl.Rhs)}
 			}
 		}
-		a.Response.Field = expr.Name
 	case *ast.SelectorExpr: // t.Success(rsp.List)
 		a.Response = a.NewStruct()
-		id := expr.X.(*ast.Ident)
+		id := exp.X.(*ast.Ident)
 		a.Response.Name = id.Name
 		if id.Obj != nil {
 			if decl, ok := id.Obj.Decl.(*ast.AssignStmt); ok {
@@ -260,15 +278,11 @@ func (a *Api) GetResponseStruct(expr ast.Expr) {
 				a.Response.MethodMap = &MethodMap{Idx: index, Paths: a.FindRspMethodMap(decl.Rhs)}
 			}
 		}
-		a.Response.Field = expr.Sel.Name
-	case *ast.UnaryExpr: // t.Success(&rsp)
-		println(expr)
-	case *ast.StarExpr: // t.Success(*rsp)
-		println(expr)
+		a.Response.Field = exp.Sel.Name
 	default:
-		println("other " + printAst(expr))
+		println("other " + printAst(exp))
 	}
-	if a.Response == nil {
+	if a.Response == nil || a.Response.MethodMap == nil {
 		s := a.getParameterStruct(expr)
 		if s != nil {
 			a.Response = s
@@ -279,8 +293,9 @@ func (a *Api) GetResponseStruct(expr ast.Expr) {
 func (a *Api) getParameterStruct(expr ast.Expr) *Struct {
 	var structType *ast.StructType
 	var structName string
-	if unary, ok := expr.(*ast.UnaryExpr); ok {
-		id := unary.X.(*ast.Ident)
+	switch exp := expr.(type) {
+	case *ast.UnaryExpr:
+		id := exp.X.(*ast.Ident)
 		if id.Obj != nil {
 			if spec, ok := id.Obj.Decl.(*ast.ValueSpec); ok {
 				switch st := spec.Type.(type) {
@@ -301,8 +316,8 @@ func (a *Api) getParameterStruct(expr ast.Expr) *Struct {
 				}
 			}
 		}
-	} else if expr, ok := expr.(*ast.Ident); ok {
-		if spec, ok := expr.Obj.Decl.(*ast.ValueSpec); ok {
+	case *ast.Ident:
+		if spec, ok := exp.Obj.Decl.(*ast.ValueSpec); ok {
 			if spec.Type != nil {
 				switch st := spec.Type.(type) {
 				case *ast.StructType:
@@ -324,7 +339,7 @@ func (a *Api) getParameterStruct(expr ast.Expr) *Struct {
 					}
 				}
 			}
-		} else if stmt, ok := expr.Obj.Decl.(*ast.AssignStmt); ok {
+		} else if stmt, ok := exp.Obj.Decl.(*ast.AssignStmt); ok {
 			if unary, ok := stmt.Rhs[0].(*ast.UnaryExpr); ok {
 				if com, ok := unary.X.(*ast.CompositeLit); ok {
 					if id, ok := com.Type.(*ast.Ident); ok {
@@ -336,7 +351,21 @@ func (a *Api) getParameterStruct(expr ast.Expr) *Struct {
 				}
 			}
 		}
-	} else {
+	case *ast.CompositeLit:
+		if id, ok := exp.Type.(*ast.Ident); ok {
+			if id.Obj != nil {
+				structType = id.Obj.Decl.(*ast.TypeSpec).Type.(*ast.StructType)
+			}
+			structName = id.Name
+		}
+	case *ast.CallExpr:
+		field := GetExprInfo(exp.Fun)
+		if field.Pkg == "" && field.Type == "string" { //string方法
+			s := a.NewStruct()
+			s.Name = field.Type
+			return s
+		}
+	default:
 		println("bind parameter error:" + printAst(expr))
 	}
 	if structType != nil {
@@ -441,39 +470,41 @@ func printAst(node interface{}) string {
 	return dst.String()
 }
 
-func GetFieldInfo(field *ast.Field) (name, pkg, typ string) {
+func GetFieldInfo(field *ast.Field) Field {
+	f := GetExprInfo(field.Type)
 	if field.Names != nil && len(field.Names) == 1 {
-		name = field.Names[0].Name
+		f.Name = field.Names[0].Name
 	}
-	pkg, typ = GetExprInfo(field.Type)
-	return
+	return f
 }
 
 const (
 	ExprStruct = "struct"
+	ExprFunc   = "func"
 )
 
-func GetExprInfo(expr ast.Expr) (pkg, typ string) {
+func GetExprInfo(expr ast.Expr) Field {
 	switch exp := expr.(type) {
 	case *ast.Ident:
-		typ = exp.Name
+		return Field{Type: exp.Name}
 	case *ast.SelectorExpr:
-		pkg = exp.X.(*ast.Ident).Name
-		typ = exp.Sel.Name
+		return Field{Type: exp.Sel.Name, Pkg: exp.X.(*ast.Ident).Name}
 	case *ast.StarExpr:
 		return GetExprInfo(exp.X)
 	case *ast.ArrayType:
-		pkg, typ = GetExprInfo(exp.Elt)
+		f := GetExprInfo(exp.Elt)
+		f.Array = true
+		return f
 	case *ast.SliceExpr:
 		return GetExprInfo(exp.X)
 	case *ast.UnaryExpr:
 		return GetExprInfo(exp.X)
 	case *ast.StructType:
-		return "", ExprStruct
+		return Field{Type: ExprStruct}
 	case *ast.FuncType:
-		return "", ExprStruct
+		return Field{Type: ExprFunc}
 	}
-	return
+	return Field{}
 }
 
 func FormatComment(comments *ast.CommentGroup) string {
@@ -541,25 +572,56 @@ func (a *Api) FillResponse(method *Method) {
 	}
 	// 寻找字段定义
 	if a.Response.Fields == nil && a.Response.Name != "" {
-		if a.Response.MethodMap != nil {
-			a.Response = a.sct.pkg.pkgs.FindParams(*a.Response.MethodMap)
-		}
+
+		a.sct.pkg.pkgs.FindInMethodMapParams(a.Response)
 	}
 	if a.Response != nil {
 		method.Responses = make(map[string]Response)
-		properties := make(map[string]Property)
-		for _, field := range a.Response.Fields {
-			for _, property := range field.ToProperty() {
-				properties[property.Name] = property
+		if baseTypes.CheckIn(a.Response.Name) { //非结构体时
+			method.Responses["200"] = Response{Description: a.Response.Des, Content: map[string]Content{"application/json": {Schema: Property{Type: (&Field{Type: a.Response.Name}).GetOpenApiType()}}}}
+		} else {
+			var fields []Field
+			isArray := false
+			if a.Response.Field != "" {
+				field := a.Response.GetField()
+				if field != nil {
+					fields = field.Struct.Fields
+					isArray = field.Array
+				}
+			} else {
+				if len(a.Response.Fields) > 0 {
+					fields = a.Response.Fields
+				} else {
+					log.Printf("response struct not found: %v", a.Response)
+				}
+			}
+			properties := make(map[string]Property)
+			for _, field := range fields {
+				for _, property := range field.ToProperty() {
+					if field.Name != "" {
+						if util.FistIsLower(field.Name) {
+							continue
+						}
+					}
+					properties[property.Name] = property
+				}
+			}
+			if len(properties) > 0 {
+				schemaName := OpenApiSchemasPrefix + a.Response.Name
+				method.api.Components.Schemas[a.Response.Name] = Property{
+					Type:       OpenApiTypeObject,
+					Properties: properties,
+				}
+				p := Property{}
+				if isArray {
+					p.Type = OpenApiTypeArray
+					p.Items = &Property{Ref: schemaName}
+				} else {
+					p.Ref = schemaName
+				}
+				method.Responses["200"] = Response{Description: a.Response.Name, Content: map[string]Content{"application/json": {Schema: p}}}
 			}
 		}
-		if len(properties) > 0 {
-			schemaName := a.Response.Name + "Rsp"
-			method.api.Components.Schemas[schemaName] = Property{
-				Type:       OpenApiTypeObject,
-				Properties: properties,
-			}
-			method.Responses["200"] = Response{Description: a.Response.Des, Content: map[string]Content{"application/json": {Schema: Property{Ref: schemaName}}}}
-		}
+
 	}
 }

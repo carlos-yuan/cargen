@@ -16,6 +16,7 @@ type Field struct {
 	Pkg       string `json:"pkg"`       //包名 类型为结构体时
 	PkgPath   string `json:"pkgPath"`   //包路径 类型为结构体时
 	Comment   string `json:"comment"`   //注释
+	Array     bool   `json:"array"`     //是否数组
 	Struct    Struct `json:"struct"`    //是结构体时
 }
 
@@ -40,6 +41,8 @@ const (
 	OpenApiTypeNumber  = "number"
 	OpenApiTypeObject  = "object"
 	OpenApiTypeString  = "string"
+
+	OpenApiSchemasPrefix = "#/components/schemas/"
 )
 
 var tagParams = []string{TagParamPath, TagParamFrom, TagParamJson, TagParamXml, TagParamYaml}
@@ -86,19 +89,28 @@ func (f Field) ToProperty() []Property {
 	if !baseTypes.CheckIn(f.Type) {
 		if f.Name == "" { //组合参数
 			for _, field := range f.Struct.Fields {
-				p = append(p, field.ToProperty()...)
+				if field.Type != f.Struct.Name {
+					p = append(p, field.ToProperty()...)
+				} else {
+					p = append(p, Property{Name: f.ParamName, Description: f.Comment, Type: PropertyTypeObject, Properties: make(map[string]Property)})
+				}
 			}
 		} else { //对象
 			property := Property{Name: f.ParamName, Description: f.Comment, Type: PropertyTypeObject, Properties: make(map[string]Property)}
 			for _, field := range f.Struct.Fields {
-				for _, fp := range field.ToProperty() {
-					property.Properties[fp.Name] = fp
+				if field.Type != f.Struct.Name {
+					for _, fp := range field.ToProperty() {
+						property.Properties[fp.Name] = fp
+					}
+				} else {
+					property.Properties[f.ParamName] = Property{Name: f.ParamName, Description: f.Comment, Type: PropertyTypeObject, Properties: make(map[string]Property)}
 				}
+
 			}
 			p = append(p, property)
 		}
 	} else {
-		p = append(p, Property{Name: f.ParamName, Description: f.Comment, Type: f.Type, Format: f.Type})
+		p = append(p, Property{Name: f.ParamName, Description: f.Comment, Type: f.GetOpenApiType(), Format: f.Type})
 	}
 	return p
 }

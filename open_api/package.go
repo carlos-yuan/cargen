@@ -26,6 +26,7 @@ func (pkgs *Packages) GenApi(pkgPath, path string) []Package {
 	for _, pkg := range astPkg {
 		list = append(list, pkgs.CreatePackage(pkg, pkgPath))
 	}
+	//填充所有项目类的结构体依赖
 	return list
 }
 
@@ -50,6 +51,7 @@ type CreatePackageOpt struct {
 	NeedMethod bool
 }
 
+// SetPkgStruct 设置包内的结构体
 func (pkg *Package) SetPkgStruct(p *ast.Package) {
 	for _, file := range p.Files {
 		//找到导入的定义
@@ -83,6 +85,22 @@ func (pkg *Package) SetPkgStruct(p *ast.Package) {
 	}
 }
 
+// FillPkgRelationStruct 设置包内的关联结构体
+func (pkgs *Packages) FillPkgRelationStruct() {
+	for i, pkg := range *pkgs {
+		for is, sct := range pkg.Structs {
+			for id, fd := range sct.Fields {
+				if !baseTypes.CheckIn(fd.Type) {
+					s := pkgs.FindStruct(fd.PkgPath, fd.Pkg, fd.Type)
+					if s != nil {
+						(*pkgs)[i].Structs[is].Fields[id].Struct = *s
+					}
+				}
+			}
+		}
+	}
+}
+
 func (pkg *Package) SetPkgApi(p *ast.Package) {
 	for fp, file := range p.Files {
 		//查找API定义
@@ -91,7 +109,9 @@ func (pkg *Package) SetPkgApi(p *ast.Package) {
 				if fc.Doc != nil {
 					api := Api{Name: fc.Name.Name, Path: fp}
 					if fc.Recv != nil && len(fc.Recv.List) == 1 {
-						api.Point, _, api.Group = GetFieldInfo(fc.Recv.List[0])
+						f := GetFieldInfo(fc.Recv.List[0])
+						api.Point = f.Name
+						api.Group = f.Type
 					}
 					for _, doc := range fc.Doc.List {
 						str := strings.TrimSpace(doc.Text)
@@ -128,33 +148,23 @@ func (sct *Struct) GetStructFromAstStructType(s *ast.StructType) {
 	if s != nil {
 		for _, fd := range s.Fields.List {
 			f := sct.FieldFromAstField(fd)
-			if f.Type == "[]OrganizeRsp" {
-				println(fd.Names[0].Name)
+			if f.Type == "RegionNodeRsp" {
+				println(f.Name)
 			}
 			if !baseTypes.CheckIn(f.Type) {
-				st, ok := fd.Type.(*ast.StructType)
-				if ok {
-					f.Struct.GetStructFromAstStructType(st)
+				field := GetExprInfo(fd.Type)
+				if field.Type == ExprStruct {
+					f.Struct.Type = field.Pkg
+					f.Struct.GetStructFromAstStructType(fd.Type.(*ast.StructType))
 				} else {
-					sa, ok := fd.Type.(*ast.ArrayType)
-					if ok {
-						st, ok = sa.Elt.(*ast.StructType)
-						if ok {
-							f.Struct.GetStructFromAstStructType(st)
-						}
+					f.Array = field.Array
+					f.Type = field.Type
+					f.Pkg = field.Pkg
+					if f.Pkg != "" {
+						f.PkgPath = sct.Imports[f.Pkg]
 					} else {
-						if si, ok := fd.Type.(*ast.Ident); ok {
-							if si.Obj != nil {
-								ts, ok := si.Obj.Decl.(*ast.TypeSpec)
-								if ok {
-									if at, ok := ts.Type.(*ast.ArrayType); ok {
-										f.Struct = Struct{Name: GetArrayType(at)} //todo 需要查找具体定义
-									} else if st, ok := ts.Type.(*ast.StructType); ok {
-										f.Struct.GetStructFromAstStructType(st)
-									}
-								}
-							}
-						}
+						f.Pkg = sct.pkg.Name
+						f.PkgPath = sct.pkg.Path
 					}
 				}
 			}
@@ -169,21 +179,8 @@ func (sct *Struct) GetStructFromAstInterfaceType(s *ast.InterfaceType) {
 	}
 }
 
-func GetArrayType(at *ast.ArrayType) string {
-	switch expr := at.Elt.(type) {
-	case *ast.Ident:
-		return expr.Name
-	case *ast.SelectorExpr:
-		return expr.X.(*ast.Ident).Name + "." + expr.Sel.Name
-	case *ast.StarExpr:
-		return expr.X.(*ast.Ident).Name
-	}
-	return ""
-}
-
 func (sct *Struct) FieldFromInterfaceAstField(fd *ast.Field) Field {
-	f := Field{}
-	f.Name, f.Pkg, f.Type = GetFieldInfo(fd)
+	f := GetFieldInfo(fd)
 	if f.Pkg != "" {
 		f.PkgPath = sct.Imports[f.Pkg]
 	}
@@ -235,8 +232,7 @@ func (sct *Struct) GetStructMethodFuncType(ft *ast.FuncType) StructMethod {
 
 // FieldFromAstField 寻找基础的结构体字段定义
 func (sct *Struct) FieldFromAstField(fd *ast.Field) Field {
-	f := Field{}
-	f.Name, f.Pkg, f.Type = GetFieldInfo(fd)
+	f := GetFieldInfo(fd)
 	if f.Pkg != "" {
 		f.PkgPath = sct.Imports[f.Pkg]
 	}

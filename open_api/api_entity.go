@@ -126,7 +126,7 @@ type Property struct {
 	Format      string              `json:"format,omitempty"`
 	Ref         string              `json:"$ref,omitempty"`
 	Required    []string            `json:"required,omitempty"`
-	Items       *Property           `json:"items,omitempty"`
+	Items       *Property           `json:"items,omitempty"` //数组
 	File        *Property           `json:"file,omitempty"`
 	Properties  map[string]Property `json:"properties,omitempty"`
 	Enum        []string            `json:"enum,omitempty"`
