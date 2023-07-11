@@ -2,11 +2,9 @@ package openapi
 
 import (
 	"bytes"
-	"github.com/carlos-yuan/cargen/util"
 	"go/ast"
 	"go/format"
 	"go/token"
-	"log"
 	"net/http"
 	"strings"
 )
@@ -24,7 +22,7 @@ type Api struct {
 	Auth         string  `json:"auth"`         //授权方式
 	ResponseType string  `json:"responseType"` //返回类型
 	Params       *Struct `json:"params"`       //参数 string为路径 Parameter为对象
-	Response     *Struct `json:"result"`       //结果 string为路径 Response为对象
+	Response     *Struct `json:"response"`     //返回结构体
 	sct          *Struct
 }
 
@@ -39,6 +37,35 @@ func (a *Api) GetApiPath() string {
 func (a *Api) NewStruct() *Struct {
 	s := NewStruct(a.sct.pkg)
 	return &s
+}
+
+func (a *Api) SetResponseData(s *Struct) {
+	for i, field := range a.Response.Fields {
+		if field.Name == "Data" {
+			a.sct.pkg.pkgs.FindInMethodMapParams(s)
+			if s != nil && s.Field != "" { //替换掉指定字段
+				for _, f := range s.Fields {
+					if f.Name == s.Field {
+						st := f.Struct.Copy()
+						a.Response.Fields[i] = Field{Name: field.Name, ParamName: field.ParamName, Struct: &st, Array: f.Array, Type: f.Type, Pkg: f.Pkg, PkgPath: f.PkgPath}
+						return
+					}
+				}
+			} else {
+				a.Response.Fields[i].Struct = s
+			}
+			return
+		}
+	}
+}
+
+func (a *Api) GetResponseData() *Struct {
+	for i, field := range a.Response.Fields {
+		if field.Name == "Data" {
+			return a.Response.Fields[i].Struct
+		}
+	}
+	return nil
 }
 
 const (
@@ -113,8 +140,8 @@ func (a *Api) AnalysisAnnotate() {
 	}
 }
 
-// CreateApiParameter 构建API基础参数
-func (a *Api) CreateApiParameter(body *ast.BlockStmt) {
+// FindApiParameter 构建API基础参数
+func (a *Api) FindApiParameter(body *ast.BlockStmt) {
 	for _, line := range body.List {
 		//寻找t.Bind(&params)
 		expr, ok := line.(*ast.ExprStmt)
@@ -260,34 +287,34 @@ func (a *Api) GetParameterStruct(expr ast.Expr) *Struct {
 func (a *Api) GetResponseStruct(expr ast.Expr) {
 	switch exp := expr.(type) {
 	case *ast.Ident: // t.Success(rsp)
-		a.Response = a.NewStruct()
-		a.Response.Name = exp.Name
+		s := a.NewStruct()
 		if exp.Obj != nil {
 			if decl, ok := exp.Obj.Decl.(*ast.AssignStmt); ok {
 				index := FindRspIndex(exp.Name, decl.Lhs)
-				a.Response.MethodMap = &MethodMap{Idx: index, Paths: a.FindRspMethodMap(decl.Rhs)}
+				s.MethodMap = &MethodMap{Idx: index, Paths: a.FindRspMethodMap(decl.Rhs)}
 			}
 		}
+		a.SetResponseData(s)
 	case *ast.SelectorExpr: // t.Success(rsp.List)
-		a.Response = a.NewStruct()
+		s := a.NewStruct()
 		id := exp.X.(*ast.Ident)
-		a.Response.Name = id.Name
+		s.Name = id.Name
 		if id.Obj != nil {
 			if decl, ok := id.Obj.Decl.(*ast.AssignStmt); ok {
 				index := FindRspIndex(id.Name, decl.Lhs)
-				a.Response.MethodMap = &MethodMap{Idx: index, Paths: a.FindRspMethodMap(decl.Rhs)}
+				s.MethodMap = &MethodMap{Idx: index, Paths: a.FindRspMethodMap(decl.Rhs)}
 			}
 		}
-		a.Response.Field = exp.Sel.Name
+		s.Field = exp.Sel.Name
+		a.SetResponseData(s)
 	default:
 		println("other " + printAst(exp))
 	}
-	if a.Response == nil || a.Response.MethodMap == nil {
+	if a.GetResponseData() == nil || a.GetResponseData().MethodMap == nil {
 		s := a.getParameterStruct(expr)
-		if s != nil {
-			a.Response = s
-		}
+		a.SetResponseData(s)
 	}
+	println(a.Response.Fields)
 }
 
 func (a *Api) getParameterStruct(expr ast.Expr) *Struct {
@@ -552,12 +579,12 @@ func (a *Api) FillRequestParams(method *Method) {
 	if len(jsonFields) > 0 {
 		properties := make(map[string]Property)
 		for _, field := range jsonFields {
-			for _, property := range field.ToProperty() {
+			for _, property := range field.ToProperty(0, 5) {
 				properties[property.Name] = property
 			}
 		}
 		for _, field := range combination {
-			for _, property := range field.ToProperty() {
+			for _, property := range field.ToProperty(0, 5) {
 				properties[property.Name] = property
 			}
 		}
@@ -570,55 +597,28 @@ func (a *Api) FillResponse(method *Method) {
 	if a.Response == nil {
 		return
 	}
-	// 寻找字段定义
-	if a.Response.Fields == nil && a.Response.Name != "" {
-
-		a.sct.pkg.pkgs.FindInMethodMapParams(a.Response)
-	}
 	if a.Response != nil {
 		method.Responses = make(map[string]Response)
 		if baseTypes.CheckIn(a.Response.Name) { //非结构体时
-			method.Responses["200"] = Response{Description: a.Response.Des, Content: map[string]Content{"application/json": {Schema: Property{Type: (&Field{Type: a.Response.Name}).GetOpenApiType()}}}}
+			method.Responses["200"] = Response{Description: a.Response.Des, Content: map[string]Content{"text/plain": {Schema: Property{Type: (&Field{Type: a.Response.Name}).GetOpenApiType()}}}}
 		} else {
-			var fields []Field
-			isArray := false
-			if a.Response.Field != "" {
-				field := a.Response.GetField()
-				if field != nil {
-					fields = field.Struct.Fields
-					isArray = field.Array
-				}
-			} else {
-				if len(a.Response.Fields) > 0 {
-					fields = a.Response.Fields
-				} else {
-					log.Printf("response struct not found: %v", a.Response)
-				}
-			}
-			properties := make(map[string]Property)
-			for _, field := range fields {
-				for _, property := range field.ToProperty() {
-					if field.Name != "" {
-						if util.FistIsLower(field.Name) {
-							continue
-						}
+			pp := a.Response.ToProperty()
+			if len(pp.Properties) > 0 {
+				schemaName := OpenApiSchemasPrefix
+				name := ""
+				data := a.GetResponseData()
+				if data != nil {
+					if baseTypes.CheckIn(data.Name) {
+						name = a.Group + "." + a.Name + "Rsp"
+					} else {
+						name = data.Name
 					}
-					properties[property.Name] = property
-				}
-			}
-			if len(properties) > 0 {
-				schemaName := OpenApiSchemasPrefix + a.Response.Name
-				method.api.Components.Schemas[a.Response.Name] = Property{
-					Type:       OpenApiTypeObject,
-					Properties: properties,
-				}
-				p := Property{}
-				if isArray {
-					p.Type = OpenApiTypeArray
-					p.Items = &Property{Ref: schemaName}
 				} else {
-					p.Ref = schemaName
+					name = a.Name
 				}
+				schemaName += name
+				method.api.Components.Schemas[name] = pp
+				p := Property{Ref: schemaName}
 				method.Responses["200"] = Response{Description: a.Response.Name, Content: map[string]Content{"application/json": {Schema: p}}}
 			}
 		}

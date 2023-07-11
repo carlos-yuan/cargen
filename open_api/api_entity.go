@@ -134,6 +134,7 @@ type Property struct {
 
 const (
 	PropertyTypeObject = "object"
+	PropertyTypeArray  = "array"
 )
 
 type Parameter struct {

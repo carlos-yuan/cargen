@@ -3,21 +3,20 @@ package openapi
 import (
 	"github.com/carlos-yuan/cargen/util"
 	"reflect"
-	"strings"
 )
 
 type Field struct {
-	Name      string `json:"name"`      //名称
-	Type      string `json:"type"`      //类型
-	Tag       string `json:"tag"`       //tag
-	In        string `json:"in"`        //存在类型 path 路径 json json对象内
-	ParamName string `json:"paramName"` //参数名
-	Validate  string `json:"validate"`  //验证
-	Pkg       string `json:"pkg"`       //包名 类型为结构体时
-	PkgPath   string `json:"pkgPath"`   //包路径 类型为结构体时
-	Comment   string `json:"comment"`   //注释
-	Array     bool   `json:"array"`     //是否数组
-	Struct    Struct `json:"struct"`    //是结构体时
+	Name      string  `json:"name"`      //名称
+	Type      string  `json:"type"`      //类型
+	Tag       string  `json:"tag"`       //tag
+	In        string  `json:"in"`        //存在类型 path 路径 json json对象内
+	ParamName string  `json:"paramName"` //参数名
+	Validate  string  `json:"validate"`  //验证
+	Pkg       string  `json:"pkg"`       //包名 类型为结构体时
+	PkgPath   string  `json:"pkgPath"`   //包路径 类型为结构体时
+	Comment   string  `json:"comment"`   //注释
+	Array     bool    `json:"array"`     //是否数组
+	Struct    *Struct `json:"struct"`    //是结构体时
 }
 
 const (
@@ -71,7 +70,7 @@ var boolTypes = BaseType{"bool"}
 var numberTypes = BaseType{"float32", "float64"}
 var stringTypes = BaseType{"string"}
 
-var baseTypes = BaseType{"interface{}", "error", "any", "bool", "uint8", "uint16", "uint32", "uint64", "int8", "int16", "int32", "int64", "float32", "float64", "string", "int", "byte", "rune"}
+var baseTypes = BaseType{"error", "bool", "uint8", "uint16", "uint32", "uint64", "int8", "int16", "int32", "int64", "float32", "float64", "string", "int", "byte", "rune"}
 
 type BaseType []string
 
@@ -84,33 +83,89 @@ func (bt BaseType) CheckIn(typ string) bool {
 	return false
 }
 
-func (f Field) ToProperty() []Property {
+// ToProperty 找到属性
+// deep 递归层数 max递归深度
+func (f Field) ToProperty(storey, deep int) []Property {
+	if f.Name != "" && util.FistIsLower(f.Name) { //小写开头的隐藏字段去掉
+		return []Property{}
+	}
+	if storey > deep { //深度限制
+		return []Property{}
+	}
 	var p []Property
-	if !baseTypes.CheckIn(f.Type) {
-		if f.Name == "" { //组合参数
+	if !baseTypes.CheckIn(f.Type) { //非一般类型
+		if f.Name == "" { //组合参数T{K}
 			for _, field := range f.Struct.Fields {
-				if field.Type != f.Struct.Name {
-					p = append(p, field.ToProperty()...)
-				} else {
-					p = append(p, Property{Name: f.ParamName, Description: f.Comment, Type: PropertyTypeObject, Properties: make(map[string]Property)})
-				}
+				p = append(p, field.ToProperty(storey+1, deep)...)
 			}
-		} else { //对象
-			property := Property{Name: f.ParamName, Description: f.Comment, Type: PropertyTypeObject, Properties: make(map[string]Property)}
-			for _, field := range f.Struct.Fields {
-				if field.Type != f.Struct.Name {
-					for _, fp := range field.ToProperty() {
-						property.Properties[fp.Name] = fp
+		} else { //嵌套对象
+			property := Property{Name: f.ParamName, Description: f.Comment, Properties: make(map[string]Property)}
+			if f.Array {
+				property.Type = PropertyTypeArray
+			} else {
+				property.Type = PropertyTypeObject
+			}
+			if f.Struct != nil {
+				var fpps []Property
+				for _, field := range f.Struct.Fields {
+					p := Property{Name: f.ParamName, Description: f.Comment, Properties: make(map[string]Property)}
+					pps := field.ToProperty(storey+1, deep)
+					if !field.Array {
+						if len(pps) == 1 && baseTypes.CheckIn(pps[0].Type) {
+							p = pps[0]
+						} else {
+							for _, fp := range pps {
+								p.Properties[fp.Name] = fp
+							}
+							p.Type = PropertyTypeObject
+						}
+					} else {
+						pp := Property{Properties: make(map[string]Property)}
+						if len(pps) == 1 && baseTypes.CheckIn(pps[0].Type) {
+							pp = pps[0]
+						} else {
+							for _, fp := range pps {
+								pp.Properties[fp.Name] = fp
+							}
+							pp.Type = PropertyTypeObject
+						}
+						p.Items = &pp
+						p.Type = PropertyTypeArray
+					}
+					fpps = append(fpps, p)
+				}
+				if !f.Array {
+					if len(fpps) == 1 && baseTypes.CheckIn(fpps[0].Type) {
+						property = fpps[0]
+					} else {
+						for _, fp := range fpps {
+							property.Properties[fp.Name] = fp
+						}
+						property.Type = PropertyTypeObject
 					}
 				} else {
-					property.Properties[f.ParamName] = Property{Name: f.ParamName, Description: f.Comment, Type: PropertyTypeObject, Properties: make(map[string]Property)}
+					pp := Property{Properties: make(map[string]Property)}
+					if len(fpps) == 1 && baseTypes.CheckIn(fpps[0].Type) {
+						pp = fpps[0]
+					} else {
+						for _, fp := range fpps {
+							pp.Properties[fp.Name] = fp
+						}
+					}
+					property.Items = &pp
+					property.Type = PropertyTypeArray
 				}
-
 			}
 			p = append(p, property)
 		}
-	} else {
-		p = append(p, Property{Name: f.ParamName, Description: f.Comment, Type: f.GetOpenApiType(), Format: f.Type})
+	} else { //一般类型
+		if f.Array { //数组类型
+			pp := Property{Name: f.ParamName, Description: f.Comment, Type: PropertyTypeArray, Format: f.Type}
+			pp.Items = &Property{Type: f.GetOpenApiType()}
+			p = append(p, pp)
+		} else {
+			p = append(p, Property{Name: f.ParamName, Description: f.Comment, Type: f.GetOpenApiType(), Format: f.Type})
+		}
 	}
 	return p
 }
@@ -148,7 +203,7 @@ func (f *Field) GetOpenApiType() string {
 	} else if stringTypes.CheckIn(f.Type) {
 		return OpenApiTypeString
 	} else {
-		if strings.Index(f.Type, "[]") == 0 {
+		if f.Array {
 			return OpenApiTypeArray
 		} else if !baseTypes.CheckIn(f.Type) {
 			return OpenApiTypeObject
@@ -156,3 +211,5 @@ func (f *Field) GetOpenApiType() string {
 	}
 	return f.Type
 }
+
+type Fields []Field

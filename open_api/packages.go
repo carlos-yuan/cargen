@@ -4,16 +4,18 @@ import (
 	"encoding/json"
 	"github.com/carlos-yuan/cargen/util"
 	"golang.org/x/mod/modfile"
+	"io/fs"
 	"log"
 	"os"
 	"strings"
+	"syscall"
 )
 
 // GenFromPath 通过目录生成
 func GenFromPath(base string) {
 	pkgs := Packages{}
 	pkgs.Init(base)
-	apis := pkgs.FindApi()
+	apis := pkgs.GetApi()
 	apis.Info.Title = "hc_enterprise_api"
 	apis.Info.Description = "hc_enterprise_api"
 	apis.Info.Version = "v0.0.1"
@@ -39,18 +41,61 @@ func (pkgs *Packages) Init(base string) {
 		if err != nil {
 			continue
 		}
+		//获取所有包和结构体定义
 		for _, s := range pathChild {
 			pkg := modFile.Module.Mod.Path + "/" + s[len(path)+1:]
 			pkg = strings.ReplaceAll(pkg, "\\", "/")
-			packages := pkgs.GenApi(pkg, s)
+			packages := pkgs.GenPackage(pkg, s)
 			*pkgs = append(*pkgs, packages...)
 		}
 	}
 	//填充字段为结构体的依赖
 	pkgs.FillPkgRelationStruct()
+	//查找API定义
+	for i := range *pkgs {
+		(*pkgs)[i].FindPkgApi()
+	}
 }
 
-func (pkgs *Packages) FindApi() OpenAPI {
+func (pkgs *Packages) GenPackage(pkgPath, path string) []Package {
+	astPkg, err := util.GetPackages(path)
+	if err != nil {
+		fserr, ok := err.(*fs.PathError)
+		if ok {
+			if fserr.Err == syscall.ENOTDIR {
+
+			} else {
+				panic(err)
+			}
+		} else {
+			panic(err)
+		}
+	}
+	var list []Package
+	//查找结构体定义
+	for _, pkg := range astPkg {
+		p := Package{Name: pkg.Name, Path: pkgPath, Structs: make(map[string]*Struct), astPkg: pkg, pkgs: pkgs}
+		p.SetPkgStruct()
+		list = append(list, p)
+	}
+	return list
+}
+
+// FillPkgRelationStruct 设置包内的关联结构体
+func (pkgs *Packages) FillPkgRelationStruct() {
+	for i, pkg := range *pkgs {
+		for is, sct := range pkg.Structs {
+			for id, fd := range sct.Fields {
+				if !baseTypes.CheckIn(fd.Type) {
+					(*pkgs)[i].Structs[is].Fields[id].Struct = pkgs.FindStructPtr(fd.PkgPath, fd.Pkg, fd.Type)
+				}
+			}
+		}
+	}
+}
+
+// GetApi 获取所有API定义
+func (pkgs *Packages) GetApi() OpenAPI {
 	api := DefaultInfo
 	var apiTags = make(map[string]string)
 	for _, p := range *pkgs {
@@ -81,6 +126,9 @@ func (pkgs *Packages) FindApi() OpenAPI {
 
 // FindInMethodMapParams 从调用链获取返回参数
 func (pkgs *Packages) FindInMethodMapParams(sct *Struct) {
+	if sct == nil {
+		return
+	}
 	m := sct.MethodMap
 	if m == nil || len(m.Paths) == 0 { //非方法调用
 		return
@@ -110,7 +158,7 @@ func (pkgs *Packages) FindInMethodMapParams(sct *Struct) {
 								if baseTypes.CheckIn(field.Type) {
 									sct.Type = field.Type
 								} else {
-									st = pkgs.FindStruct(field.PkgPath, field.Pkg, field.Name)
+									st = pkgs.FindStructPtr(field.PkgPath, field.Pkg, field.Name)
 								}
 							}
 							if st != nil {
@@ -139,8 +187,8 @@ func (pkgs *Packages) DeepFindParams(idx int, paths []string, field Field) *Stru
 		return nil
 	}
 	isComplex := field.Name == "" //组合结构体
-	s := pkgs.FindStruct(field.PkgPath, field.Pkg, field.Type)
-	if s == nil {
+	s := pkgs.FindStructPtr(field.PkgPath, field.Pkg, field.Type)
+	if s.Name == "" {
 		return nil
 	}
 	var m *StructMethod
@@ -172,21 +220,32 @@ func (pkgs *Packages) DeepFindParams(idx int, paths []string, field Field) *Stru
 			if baseTypes.CheckIn(field.Type) {
 				return &Struct{Type: field.Type}
 			} else {
-				return pkgs.FindStruct(field.PkgPath, field.Pkg, field.Type)
+				return pkgs.FindStructPtr(field.PkgPath, field.Pkg, field.Type)
 			}
 		}
 	}
 	return nil
 }
 
-func (pkgs *Packages) FindStruct(path, pkg, name string) *Struct {
+func (pkgs *Packages) FindStructPtr(path, pkg, name string) *Struct {
 	for _, p := range *pkgs {
 		if p.Path == path && p.Name == pkg {
-			s := p.Structs[name]
-			return s
+			return p.Structs[name]
 		}
 	}
 	return nil
+}
+
+func (pkgs *Packages) FindStruct(path, pkg, name string) Struct {
+	for _, p := range *pkgs {
+		if p.Path == path && p.Name == pkg {
+			s := p.Structs[name]
+			if s != nil {
+				return s.Copy()
+			}
+		}
+	}
+	return Struct{}
 }
 
 func GetFilePath(filepath string, fileName string) ([]string, error) {
