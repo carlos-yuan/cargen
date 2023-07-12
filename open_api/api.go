@@ -310,13 +310,12 @@ func (a *Api) GetResponseStruct(expr ast.Expr) {
 		s.Field = exp.Sel.Name
 		a.SetResponseData(s)
 	default:
-		println("other " + printAst(exp))
+
 	}
 	if a.GetResponseData() == nil || a.GetResponseData().MethodMap == nil {
 		s := a.getParameterStruct(expr)
 		a.SetResponseData(s)
 	}
-	println(a.Response.Fields)
 }
 
 func (a *Api) getParameterStruct(expr ast.Expr) *Struct {

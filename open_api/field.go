@@ -107,9 +107,6 @@ func (f Field) ToProperty(storey, deep int) []Property {
 			}
 			if f.Struct != nil {
 				var fpps []Property
-				if f.Name == "Enterprises" {
-					println(f.Name)
-				}
 				for _, field := range f.Struct.Fields {
 					pps := field.ToProperty(storey+1, deep)
 					if len(pps) == 0 {
