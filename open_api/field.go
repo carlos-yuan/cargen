@@ -107,41 +107,55 @@ func (f Field) ToProperty(storey, deep int) []Property {
 			}
 			if f.Struct != nil {
 				var fpps []Property
+				if f.Name == "Enterprises" {
+					println(f.Name)
+				}
 				for _, field := range f.Struct.Fields {
-					p := Property{Name: f.ParamName, Description: f.Comment, Properties: make(map[string]Property)}
 					pps := field.ToProperty(storey+1, deep)
-					if !field.Array {
-						if len(pps) == 1 && baseTypes.CheckIn(pps[0].Type) {
-							p = pps[0]
-						} else {
-							for _, fp := range pps {
-								p.Properties[fp.Name] = fp
-							}
-							p.Type = PropertyTypeObject
-						}
+					if len(pps) == 0 {
+						continue
+					}
+					p := Property{Name: field.ParamName, Description: field.Comment, Properties: make(map[string]Property)}
+					if len(pps) == 1 {
+						p = pps[0]
 					} else {
-						pp := Property{Properties: make(map[string]Property)}
-						if len(pps) == 1 && baseTypes.CheckIn(pps[0].Type) {
-							pp = pps[0]
-						} else {
-							for _, fp := range pps {
-								pp.Properties[fp.Name] = fp
+						if !field.Array {
+							if len(pps) == 1 && baseTypes.CheckIn(pps[0].Type) {
+								p = pps[0]
+							} else {
+								for _, fp := range pps {
+									p.Properties[fp.Name] = fp
+								}
+								p.Type = PropertyTypeObject
 							}
-							pp.Type = PropertyTypeObject
+						} else {
+							pp := Property{Properties: make(map[string]Property)}
+							if len(pps) == 1 && baseTypes.CheckIn(pps[0].Type) {
+								pp = pps[0]
+							} else {
+								for _, fp := range pps {
+									pp.Properties[fp.Name] = fp
+								}
+								pp.Type = PropertyTypeObject
+							}
+							p.Items = &pp
+							p.Type = PropertyTypeArray
 						}
-						p.Items = &pp
-						p.Type = PropertyTypeArray
 					}
 					fpps = append(fpps, p)
 				}
+				if len(fpps) == 1 {
+
+				}
 				if !f.Array {
 					if len(fpps) == 1 && baseTypes.CheckIn(fpps[0].Type) {
-						property = fpps[0]
+						p = append(p, fpps[0])
 					} else {
 						for _, fp := range fpps {
 							property.Properties[fp.Name] = fp
 						}
 						property.Type = PropertyTypeObject
+						p = append(p, property)
 					}
 				} else {
 					pp := Property{Properties: make(map[string]Property)}
@@ -154,9 +168,9 @@ func (f Field) ToProperty(storey, deep int) []Property {
 					}
 					property.Items = &pp
 					property.Type = PropertyTypeArray
+					p = append(p, property)
 				}
 			}
-			p = append(p, property)
 		}
 	} else { //一般类型
 		if f.Array { //数组类型
@@ -213,3 +227,37 @@ func (f *Field) GetOpenApiType() string {
 }
 
 type Fields []Field
+
+// ToProperty 找到属性
+// deep 递归层数 max递归深度
+func (f *Fields) ToProperty(storey, deep int) []Property {
+	var list []Property
+	for _, field := range *f {
+		pps := field.ToProperty(storey, deep)
+		if baseTypes.CheckIn(field.Type) && len(pps) == 1 {
+			list = append(list, pps[0])
+		} else {
+			p := Property{Name: field.ParamName, Description: field.Comment, Properties: make(map[string]Property)}
+			if !field.Array {
+				for _, fp := range pps {
+					p.Properties[fp.Name] = fp
+				}
+				p.Type = PropertyTypeObject
+			} else {
+				pp := Property{Properties: make(map[string]Property)}
+				if len(pps) == 1 && baseTypes.CheckIn(pps[0].Type) {
+					pp = pps[0]
+				} else {
+					for _, fp := range pps {
+						pp.Properties[fp.Name] = fp
+					}
+					pp.Type = PropertyTypeObject
+				}
+				p.Items = &pp
+				p.Type = PropertyTypeArray
+			}
+			list = append(list, p)
+		}
+	}
+	return list
+}

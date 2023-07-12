@@ -12,15 +12,18 @@ import (
 )
 
 // GenFromPath 通过目录生成
-func GenFromPath(base string) {
+func GenFromPath(name, des, version, path, out string) {
 	pkgs := Packages{}
-	pkgs.Init(base)
+	pkgs.Init(path)
 	apis := pkgs.GetApi()
-	apis.Info.Title = "hc_enterprise_api"
-	apis.Info.Description = "hc_enterprise_api"
-	apis.Info.Version = "v0.0.1"
+	apis.Info.Title = name
+	apis.Info.Description = des
+	apis.Info.Version = version
 	b, _ := json.Marshal(apis)
-	println(string(b))
+	err := util.WriteByteFile(out, b)
+	if err != nil {
+		panic(err)
+	}
 }
 
 type Packages []Package
@@ -97,11 +100,11 @@ func (pkgs *Packages) FillPkgRelationStruct() {
 // GetApi 获取所有API定义
 func (pkgs *Packages) GetApi() OpenAPI {
 	api := DefaultInfo
-	var apiTags = make(map[string]string)
+	var apiTags = make(map[string]Tag)
 	for _, p := range *pkgs {
 		for _, s := range p.Structs {
 			if len(s.Api) > 0 {
-				apiTags[p.Name] = p.Name
+				apiTags[s.Name] = Tag{Name: s.Name, Description: s.Des}
 				for _, a := range s.Api {
 					name := "/" + util.FistToLower(a.Group) + "/" + util.FistToLower(a.Name)
 					if a.RequestPath != "" {
@@ -110,7 +113,7 @@ func (pkgs *Packages) GetApi() OpenAPI {
 					if api.Paths[name] == nil {
 						api.Paths[name] = make(map[string]Method)
 					}
-					method := Method{Tags: []string{p.Name}, OperationId: a.GetOperationId(), Summary: a.Summary, api: &api}
+					method := Method{Tags: []string{s.Name}, OperationId: a.GetOperationId(), Summary: a.Summary, api: &api}
 					a.FillRequestParams(&method)
 					a.FillResponse(&method)
 					api.Paths[name][a.HttpMethod] = method
@@ -118,8 +121,8 @@ func (pkgs *Packages) GetApi() OpenAPI {
 			}
 		}
 	}
-	for _, tag := range util.MapToSplice(apiTags) {
-		api.Tags = append(api.Tags, Tag{Name: tag})
+	for _, tag := range apiTags {
+		api.Tags = append(api.Tags, tag)
 	}
 	return api
 }

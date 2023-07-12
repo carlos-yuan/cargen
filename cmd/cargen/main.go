@@ -13,6 +13,9 @@ func main() {
 	flag.StringVar(&conf.DbDsn, "d", "", "dsn")
 	flag.StringVar(&conf.Tables, "t", "", "tables")
 	flag.StringVar(&conf.DbName, "db", "", "db name")
+	flag.StringVar(&conf.Out, "o", "", "output path")
+	flag.StringVar(&conf.Des, "des", "", "description")
+	flag.StringVar(&conf.Version, "v", "", "版本")
 	flag.Parse()
 	if conf.Path == "" {
 		panic("项目目录不能为空")

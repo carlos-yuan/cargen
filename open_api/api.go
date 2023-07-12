@@ -43,16 +43,18 @@ func (a *Api) SetResponseData(s *Struct) {
 	for i, field := range a.Response.Fields {
 		if field.Name == "Data" {
 			a.sct.pkg.pkgs.FindInMethodMapParams(s)
-			if s != nil && s.Field != "" { //替换掉指定字段
-				for _, f := range s.Fields {
-					if f.Name == s.Field {
-						st := f.Struct.Copy()
-						a.Response.Fields[i] = Field{Name: field.Name, ParamName: field.ParamName, Struct: &st, Array: f.Array, Type: f.Type, Pkg: f.Pkg, PkgPath: f.PkgPath}
-						return
+			if s != nil {
+				if s.Field != "" { //替换掉指定字段
+					for _, f := range s.Fields {
+						if f.Name == s.Field {
+							a.Response.Fields[i] = Field{Name: field.Name, ParamName: field.ParamName, Struct: f.Struct, Array: f.Array, Type: f.Type, Pkg: f.Pkg, PkgPath: f.PkgPath}
+							return
+						}
 					}
+				} else {
+					a.Response.Fields[i].Struct = s
+					a.Response.Fields[i].Type = s.Name
 				}
-			} else {
-				a.Response.Fields[i].Struct = s
 			}
 			return
 		}

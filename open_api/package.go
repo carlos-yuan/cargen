@@ -33,21 +33,26 @@ func (pkg *Package) SetPkgStruct() {
 			}
 		}
 		if file.Scope != nil {
-			for _, obj := range file.Scope.Objects {
-				s := Struct{Name: obj.Name, Imports: imports, pkg: pkg}
-				if obj.Decl != nil {
-					ts, ok := obj.Decl.(*ast.TypeSpec)
-					if ok {
-						s.Des = FormatComment(ts.Comment)
-						switch typ := ts.Type.(type) {
-						case *ast.StructType:
-							s.GetStructFromAstStructType(typ)
-						case *ast.InterfaceType:
-							s.GetStructFromAstInterfaceType(typ)
+			for _, decl := range file.Decls {
+				if gendecl, ok := decl.(*ast.GenDecl); ok {
+					for _, spec := range gendecl.Specs {
+						ts, ok := spec.(*ast.TypeSpec)
+						if ok {
+							s := Struct{Name: ts.Name.Name, Imports: imports, pkg: pkg}
+							s.Des = FormatComment(gendecl.Doc)
+							if s.Des == "" {
+								s.Des = s.Name
+							}
+							switch typ := ts.Type.(type) {
+							case *ast.StructType:
+								s.GetStructFromAstStructType(typ)
+							case *ast.InterfaceType:
+								s.GetStructFromAstInterfaceType(typ)
+							}
+							pkg.Structs[s.Name] = &s
 						}
 					}
 				}
-				pkg.Structs[s.Name] = &s
 			}
 		}
 	}
