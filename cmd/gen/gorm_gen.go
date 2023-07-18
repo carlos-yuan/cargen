@@ -1,6 +1,7 @@
 package gen
 
 import (
+	"github.com/carlos-yuan/cargen/util"
 	"gorm.io/driver/mysql"
 	"gorm.io/gen"
 	"gorm.io/gorm"
@@ -14,7 +15,7 @@ func GormGen(path, dsn, name string, tables []string) {
 		ModelPkgPath:  "/model",
 	})
 	g.WithJSONTagNameStrategy(func(columnName string) (tagContent string) {
-		return ToCamelFirstLowerCase(columnName)
+		return util.ToCamelFirstLowerCase(columnName)
 	})
 	gormdb, _ := gorm.Open(mysql.Open(dsn))
 	g.UseDB(gormdb) // reuse your gorm db

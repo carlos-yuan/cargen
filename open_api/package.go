@@ -9,6 +9,7 @@ import (
 type Package struct {
 	Name    string             //包名
 	Path    string             //包路径
+	ModPath string             //模块路径
 	Structs map[string]*Struct //所有结构体信息
 	astPkg  *ast.Package
 	pkgs    *Packages

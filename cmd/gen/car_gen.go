@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/carlos-yuan/cargen/util"
 	"go/ast"
 	gobuild "go/build"
 	"go/doc"
@@ -128,7 +129,7 @@ func (g *Generator) generateServiceFile(intfs []*ast.TypeSpec) {
 		info.Buffer.WriteString(header)
 		info.Buffer.WriteString(define)
 		info.Buffer.WriteString(method)
-		err := WriteByteFile(g.DistPath+ToSnakeCase(info.Name)+".gen.go", info.Buffer.Bytes())
+		err := WriteByteFile(g.DistPath+util.ToSnakeCase(info.Name)+".gen.go", info.Buffer.Bytes())
 		if err != nil {
 			panic(err)
 		}
@@ -244,8 +245,8 @@ func (g *Generator) generateMethodFile(intfs []*ast.TypeSpec) {
 				info.Buffer.WriteString(g.generateMethodFileStructMethod(m))
 				infos = append(infos, info)
 			} else {
-				file := g.DistPath + ToSnakeCase(m.Names[0].Name) + ".go"
-				oldCode, err := ReadAll(g.DistPath + ToSnakeCase(m.Names[0].Name) + ".go")
+				file := g.DistPath + util.ToSnakeCase(m.Names[0].Name) + ".go"
+				oldCode, err := ReadAll(g.DistPath + util.ToSnakeCase(m.Names[0].Name) + ".go")
 				if err != nil {
 					panic(err)
 				}
@@ -289,7 +290,7 @@ func (g *Generator) generateMethodFile(intfs []*ast.TypeSpec) {
 		}
 	}
 	for _, mf := range infos {
-		err := WriteByteFile(g.DistPath+ToSnakeCase(mf.Name)+".go", mf.Buffer.Bytes())
+		err := WriteByteFile(g.DistPath+util.ToSnakeCase(mf.Name)+".go", mf.Buffer.Bytes())
 		if err != nil {
 			panic(err)
 		}

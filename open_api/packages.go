@@ -49,6 +49,9 @@ func (pkgs *Packages) Init(base string) {
 			pkg := modFile.Module.Mod.Path + "/" + s[len(path)+1:]
 			pkg = strings.ReplaceAll(pkg, "\\", "/")
 			packages := pkgs.GenPackage(pkg, s)
+			for i := range packages {
+				packages[i].ModPath = path
+			}
 			*pkgs = append(*pkgs, packages...)
 		}
 	}
@@ -106,10 +109,7 @@ func (pkgs *Packages) GetApi() OpenAPI {
 			if len(s.Api) > 0 {
 				apiTags[s.Name] = Tag{Name: s.Name, Description: s.Des}
 				for _, a := range s.Api {
-					name := "/" + util.FistToLower(a.Group) + "/" + util.FistToLower(a.Name)
-					if a.RequestPath != "" {
-						name = a.RequestPath
-					}
+					name := a.GetRequestPath()
 					if api.Paths[name] == nil {
 						api.Paths[name] = make(map[string]Method)
 					}
@@ -191,6 +191,9 @@ func (pkgs *Packages) DeepFindParams(idx int, paths []string, field Field) *Stru
 	}
 	isComplex := field.Name == "" //组合结构体
 	s := pkgs.FindStructPtr(field.PkgPath, field.Pkg, field.Type)
+	if s == nil {
+		return nil
+	}
 	if s.Name == "" {
 		return nil
 	}

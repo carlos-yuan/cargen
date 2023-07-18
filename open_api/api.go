@@ -2,6 +2,7 @@ package openapi
 
 import (
 	"bytes"
+	"github.com/carlos-yuan/cargen/util"
 	"go/ast"
 	"go/format"
 	"go/token"
@@ -32,6 +33,22 @@ func (a *Api) GetOperationId() string {
 
 func (a *Api) GetApiPath() string {
 	return a.Group + "." + a.Name
+}
+
+func (a *Api) GetRequestPath() string {
+	name := "/" + util.FistToLower(a.Group) + "/" + util.FistToLower(a.Name)
+	if a.RequestPath != "" {
+		name = "/" + util.FistToLower(a.Group) + "/" + a.RequestPath
+	}
+	return name
+}
+
+func (a *Api) GetRequestPathNoGroup() string {
+	name := "/" + util.FistToLower(a.Name)
+	if a.RequestPath != "" {
+		name = "/" + a.RequestPath
+	}
+	return name
 }
 
 func (a *Api) NewStruct() *Struct {
@@ -104,12 +121,13 @@ var ResponseType = []string{ResponseTypeJSON, ResponseTypeXML, ResponseTypeBytes
 
 func (a *Api) AnalysisAnnotate() {
 	annotates := strings.Split(a.Annotate, AnnotateSplitChar)
+annotate:
 	for _, annotate := range annotates {
 		annotate = strings.TrimSpace(annotate)
 		for _, s := range APIMethods {
 			if s == annotate {
 				a.HttpMethod = s
-				break
+				continue annotate
 			}
 		}
 		if a.HttpMethod == annotate {
@@ -123,13 +141,13 @@ func (a *Api) AnalysisAnnotate() {
 		for _, s := range AuthType {
 			if s == annotate {
 				a.Auth += s + " "
-				continue
+				continue annotate
 			}
 		}
 		for _, s := range ResponseType {
 			if s == annotate {
 				a.ResponseType = s
-				break
+				continue annotate
 			}
 		}
 		if a.ResponseType == annotate {
@@ -351,7 +369,15 @@ func (a *Api) getParameterStruct(expr ast.Expr) *Struct {
 				case *ast.StructType:
 					structType = st
 				case *ast.Ident:
-					structType = st.Obj.Decl.(*ast.TypeSpec).Type.(*ast.StructType)
+					defer func() {
+						r := recover()
+						if r != nil {
+							println(st)
+						}
+					}()
+					if st.Obj != nil {
+						structType = st.Obj.Decl.(*ast.TypeSpec).Type.(*ast.StructType)
+					}
 					structName = st.Name
 				}
 			} else if spec.Values != nil {
@@ -393,8 +419,6 @@ func (a *Api) getParameterStruct(expr ast.Expr) *Struct {
 			s.Name = field.Type
 			return s
 		}
-	default:
-		println("bind parameter error:" + printAst(expr))
 	}
 	if structType != nil {
 		s := a.NewStruct()

@@ -19,9 +19,10 @@ type Config struct {
 }
 
 const (
-	GenGrpc = "grpc"
-	GenDB   = "database"
-	GenDoc  = "doc"
+	GenGrpc   = "grpc"
+	GenDB     = "database"
+	GenDoc    = "doc"
+	GenRouter = "router"
 )
 
 func (c Config) Build() {
@@ -37,6 +38,8 @@ func (c Config) Build() {
 		GormGen(c.Path, c.DbDsn, c.DbName, strings.Split(c.Tables, ","))
 	} else if c.Gen == GenDoc {
 		openapi.GenFromPath(c.Name, c.Des, c.Version, c.Path, c.Out)
+	} else if c.Gen == GenRouter {
+		CreateApiRouter(c.Path)
 	}
 	println("Generation time:", time.Now().UnixMilli()-start)
 }

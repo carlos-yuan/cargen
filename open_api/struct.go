@@ -10,8 +10,6 @@ type Struct struct {
 	Des       string            `json:"des"`       //描述
 	Type      string            `json:"type"`      //结构体类型
 	Field     string            `json:"field"`     //所需字段 有时可能需要的是结构体中的字段 如：rsp.List
-	Pkg       string            `json:"pkg"`       //包
-	PkgPath   string            `json:"pkgPath"`   //包路径
 	Fields    Fields            `json:"fields"`    //字段
 	MethodMap *MethodMap        `json:"methodMap"` //map[参数位置][]链路 方法的返回值类型查找
 	Imports   map[string]string //包下所有导入的包信息
@@ -36,8 +34,6 @@ func (sct Struct) Copy() Struct {
 		Type:      sct.Type,
 		Field:     sct.Field,
 		Fields:    make([]Field, 0, len(sct.Fields)),
-		Pkg:       sct.Pkg,
-		PkgPath:   sct.PkgPath,
 		MethodMap: sct.MethodMap,
 		Imports:   sct.Imports,
 		Methods:   sct.Methods,
