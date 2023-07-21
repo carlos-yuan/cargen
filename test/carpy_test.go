@@ -1,9 +1,12 @@
 package test
 
 import (
+	"github.com/carlos-yuan/cargen/carpy"
 	"testing"
 )
 
-func TestCarpy(t *testing.T) {
+var cp carpy.Copy
 
+func TestCarpy(t *testing.T) {
+	carpy.Gen("D:\\carlos\\cargen")
 }

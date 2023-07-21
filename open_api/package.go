@@ -20,8 +20,12 @@ type CreatePackageOpt struct {
 	NeedMethod bool
 }
 
-// SetPkgStruct 设置包内的结构体
-func (pkg *Package) SetPkgStruct() {
+func (pkg *Package) GetAstPkg() *ast.Package {
+	return pkg.astPkg
+}
+
+// FindPkgStruct 设置包内的结构体
+func (pkg *Package) FindPkgStruct() {
 	for _, file := range pkg.astPkg.Files {
 		//找到导入的定义
 		var imports = make(map[string]string)

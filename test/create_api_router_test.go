@@ -6,5 +6,5 @@ import (
 )
 
 func TestCreateApiRouter(t *testing.T) {
-	gen.CreateApiRouter(gen.Config{Path: "D:\\carlos\\hc_enterprise_server"})
+	gen.CreateApiRouter("D:\\carlos\\hc_enterprise_server")
 }

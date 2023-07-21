@@ -29,7 +29,7 @@ func GenFromPath(name, des, version, path, out string) {
 type Packages []Package
 
 func (pkgs *Packages) Init(base string) {
-	files, err := GetFilePath(base, "go.mod")
+	files, err := util.GetFilePath(base, "go.mod")
 	if err != nil {
 		panic(err)
 	}
@@ -40,7 +40,7 @@ func (pkgs *Packages) Init(base string) {
 		if err != nil {
 			continue
 		}
-		pathChild, err := GetAllPath(path)
+		pathChild, err := util.GetAllPath(path)
 		if err != nil {
 			continue
 		}
@@ -63,6 +63,37 @@ func (pkgs *Packages) Init(base string) {
 	}
 }
 
+func (pkgs *Packages) InitPackages(base string) {
+	files, err := util.GetFilePath(base, "go.mod")
+	if err != nil {
+		panic(err)
+	}
+	for _, file := range files {
+		goModFilePathData, _ := os.ReadFile(file)
+		modFile, _ := modfile.Parse("go.mod", goModFilePathData, nil)
+		path, err := util.CutPathLast(file, 1)
+		if err != nil {
+			continue
+		}
+		pathChild, err := util.GetAllPath(path)
+		if err != nil {
+			continue
+		}
+		//获取所有包和结构体定义
+		for _, s := range pathChild {
+			pkg := modFile.Module.Mod.Path + "/" + s[len(path)+1:]
+			pkg = strings.ReplaceAll(pkg, "\\", "/")
+			packages := pkgs.GenPackage(pkg, s)
+			for i := range packages {
+				packages[i].ModPath = path
+			}
+			*pkgs = append(*pkgs, packages...)
+		}
+	}
+	//填充字段为结构体的依赖
+	pkgs.FillPkgRelationStruct()
+}
+
 func (pkgs *Packages) GenPackage(pkgPath, path string) []Package {
 	astPkg, err := util.GetPackages(path)
 	if err != nil {
@@ -81,7 +112,7 @@ func (pkgs *Packages) GenPackage(pkgPath, path string) []Package {
 	//查找结构体定义
 	for _, pkg := range astPkg {
 		p := Package{Name: pkg.Name, Path: pkgPath, Structs: make(map[string]*Struct), astPkg: pkg, pkgs: pkgs}
-		p.SetPkgStruct()
+		p.FindPkgStruct()
 		list = append(list, p)
 	}
 	return list
@@ -252,48 +283,4 @@ func (pkgs *Packages) FindStruct(path, pkg, name string) Struct {
 		}
 	}
 	return Struct{}
-}
-
-func GetFilePath(filepath string, fileName string) ([]string, error) {
-	infos, err := os.ReadDir(filepath)
-	if err != nil {
-		return nil, err
-	}
-	paths := make([]string, 0, len(infos))
-	for _, info := range infos {
-		path := filepath + string(os.PathSeparator) + info.Name()
-		if info.IsDir() {
-			tmp, err := GetFilePath(path, fileName)
-			if err != nil {
-				return nil, err
-			}
-			paths = append(paths, tmp...)
-			continue
-		}
-		if info.Name() == fileName {
-			paths = append(paths, path)
-		}
-	}
-	return paths, nil
-}
-
-func GetAllPath(path string) ([]string, error) {
-	infos, err := os.ReadDir(path)
-	if err != nil {
-		return nil, err
-	}
-	paths := make([]string, 0, len(infos))
-	for _, info := range infos {
-		path := path + string(os.PathSeparator) + info.Name()
-		if info.IsDir() {
-			tmp, err := GetAllPath(path)
-			if err != nil {
-				return nil, err
-			}
-			paths = append(paths, tmp...)
-			paths = append(paths, path)
-			continue
-		}
-	}
-	return paths, nil
 }

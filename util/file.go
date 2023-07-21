@@ -132,3 +132,47 @@ func ProjectPath() (string, error) {
 	}
 	return base, nil
 }
+
+func GetAllPath(path string) ([]string, error) {
+	infos, err := os.ReadDir(path)
+	if err != nil {
+		return nil, err
+	}
+	paths := make([]string, 0, len(infos))
+	for _, info := range infos {
+		path := path + string(os.PathSeparator) + info.Name()
+		if info.IsDir() {
+			tmp, err := GetAllPath(path)
+			if err != nil {
+				return nil, err
+			}
+			paths = append(paths, tmp...)
+			paths = append(paths, path)
+			continue
+		}
+	}
+	return paths, nil
+}
+
+func GetFilePath(filepath string, fileName string) ([]string, error) {
+	infos, err := os.ReadDir(filepath)
+	if err != nil {
+		return nil, err
+	}
+	paths := make([]string, 0, len(infos))
+	for _, info := range infos {
+		path := filepath + string(os.PathSeparator) + info.Name()
+		if info.IsDir() {
+			tmp, err := GetFilePath(path, fileName)
+			if err != nil {
+				return nil, err
+			}
+			paths = append(paths, tmp...)
+			continue
+		}
+		if info.Name() == fileName {
+			paths = append(paths, path)
+		}
+	}
+	return paths, nil
+}
