@@ -80,7 +80,7 @@ func (pkg *Package) FindPkgApi() {
 						str = strings.TrimPrefix(str, `//`)
 						str = strings.TrimSpace(str)
 						if api.Summary == "" && strings.Index(str, api.Name) == 0 {
-							api.Summary = strings.ReplaceAll(str, api.Name, "")
+							api.Summary = strings.TrimSpace(strings.ReplaceAll(str, api.Name, ""))
 						} else if api.Annotate == "" && strings.Index(str, "@") == 0 {
 							api.Annotate = str[1:]
 						} else {

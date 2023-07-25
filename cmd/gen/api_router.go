@@ -29,6 +29,9 @@ func CreateApiRouter(genPath string) {
 					if api.Auth != "" {
 						checkToken = "\n\t\t\t\tt.CheckToken()"
 					}
+					if api.Summary == "添加运单" {
+						println(api.Description)
+					}
 					urlPath := api.GetRequestPathNoGroup()
 					if api.Params != nil {
 						for _, param := range api.Params.Fields {

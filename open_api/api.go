@@ -38,7 +38,11 @@ func (a *Api) GetApiPath() string {
 func (a *Api) GetRequestPath() string {
 	name := "/" + util.FistToLower(a.Group) + "/" + util.FistToLower(a.Name)
 	if a.RequestPath != "" {
-		name = "/" + util.FistToLower(a.Group) + "/" + a.RequestPath
+		if a.RequestPath == "-" {
+			name = "/" + util.FistToLower(a.Group)
+		} else {
+			name = "/" + util.FistToLower(a.Group) + "/" + a.RequestPath
+		}
 	}
 	return name
 }
@@ -46,7 +50,11 @@ func (a *Api) GetRequestPath() string {
 func (a *Api) GetRequestPathNoGroup() string {
 	name := "/" + util.FistToLower(a.Name)
 	if a.RequestPath != "" {
-		name = "/" + a.RequestPath
+		if a.RequestPath == "-" {
+			name = ""
+		} else {
+			name = "/" + a.RequestPath
+		}
 	}
 	return name
 }
