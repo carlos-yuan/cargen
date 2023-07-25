@@ -5,6 +5,7 @@ import (
 	"fmt"
 	openapi "github.com/carlos-yuan/cargen/open_api"
 	"github.com/carlos-yuan/cargen/util"
+	"sort"
 	"strings"
 )
 
@@ -15,6 +16,9 @@ func CreateApiRouter(genPath string) {
 	var routers = make(map[string]string) //map[文件路径]代码
 	for _, pkg := range pkgs {
 		for _, s := range pkg.Structs {
+			sort.Slice(s.Api, func(i, j int) bool {
+				return strings.Compare(s.Api[i].GetRequestPath(), s.Api[j].GetRequestPath()) == 1
+			})
 			if len(s.Api) > 0 {
 				path := pkg.ModPath + "\\router\\" + util.ToSnakeCase(s.Name) + ".gen.go"
 				importInfo := util.LastName(pkg.Path)

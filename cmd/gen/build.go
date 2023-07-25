@@ -2,6 +2,7 @@ package gen
 
 import (
 	openapi "github.com/carlos-yuan/cargen/open_api"
+	"github.com/carlos-yuan/cargen/util"
 	"strings"
 	"time"
 )
@@ -40,6 +41,9 @@ func (c Config) Build() {
 		openapi.GenFromPath(c.Name, c.Des, c.Version, c.Path, c.Out)
 	} else if c.Gen == GenRouter {
 		CreateApiRouter(c.Path)
+	}
+	if c.Path != "" {
+		util.GoFmt(c.Path)
 	}
 	println("Generation time:", time.Now().UnixMilli()-start)
 }
