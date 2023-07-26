@@ -28,6 +28,9 @@ const (
 
 func (c Config) Build() {
 	start := time.Now().UnixMilli()
+	if c.Path != "" {
+		c.Path = util.FixPathSeparator(c.Path)
+	}
 	if c.Gen == GenGrpc {
 		projectPath := c.Path + "/biz/" + c.Name
 		if c.Name != "" {

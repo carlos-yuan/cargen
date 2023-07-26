@@ -36,6 +36,14 @@ func CutPath(path string, count int) (string, error) {
 	return path, nil
 }
 
+func FixPathSeparator(path string) string {
+	if string(os.PathSeparator) == "\\" {
+		return strings.ReplaceAll(path, "/", string(os.PathSeparator))
+	} else {
+		return strings.ReplaceAll(path, "\\", string(os.PathSeparator))
+	}
+}
+
 func LastName(path string) string {
 	idx := strings.LastIndex(path, `/`)
 	if idx == -1 {
