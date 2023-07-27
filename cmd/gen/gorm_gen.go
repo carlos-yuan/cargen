@@ -12,7 +12,7 @@ func GormGen(path, dsn, name string, tables []string) {
 		OutPath:       util.FixPathSeparator(path + "/orm/" + name + "/query"),
 		Mode:          gen.WithoutContext | gen.WithDefaultQuery | gen.WithQueryInterface, // generate mode
 		FieldNullable: true,
-		ModelPkgPath:  "/model",
+		ModelPkgPath:  util.FixPathSeparator(path + "/orm/" + name + "/model"),
 	})
 	g.WithJSONTagNameStrategy(func(columnName string) (tagContent string) {
 		return util.ToCamelFirstLowerCase(columnName)
