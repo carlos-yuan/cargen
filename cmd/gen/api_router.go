@@ -20,7 +20,7 @@ func CreateApiRouter(genPath string) {
 				return strings.Compare(s.Api[i].GetRequestPath(), s.Api[j].GetRequestPath()) == 1
 			})
 			if len(s.Api) > 0 {
-				path := pkg.ModPath + "\\router\\" + util.ToSnakeCase(s.Name) + ".gen.go"
+				path := pkg.ModPath + "/router/" + util.ToSnakeCase(s.Name) + ".gen.go"
 				importInfo := util.LastName(pkg.Path)
 				if importInfo == pkg.Name {
 					importInfo = `"` + pkg.Path + `"`
@@ -32,9 +32,6 @@ func CreateApiRouter(genPath string) {
 					checkToken := ""
 					if api.Auth != "" {
 						checkToken = "\n\t\t\t\tt.CheckToken()"
-					}
-					if api.Summary == "添加运单" {
-						println(api.Description)
 					}
 					urlPath := api.GetRequestPathNoGroup()
 					if api.Params != nil {

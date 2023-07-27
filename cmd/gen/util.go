@@ -73,7 +73,7 @@ func ModelToProtobuf(path, protoPkg, goPkg, modelPath, modelName string) {
 			protoBuf.WriteString("}\n\n")
 		}
 	}
-	dir := path + "\\" + protoPkg + "\\rpc\\" + protoPkg + "_model_gen.proto"
+	dir := path + "/" + protoPkg + "/rpc/" + protoPkg + "_model_gen.proto"
 	err = WriteStringFile(dir, protoBuf.String())
 	if err != nil {
 		panic(err)
@@ -207,9 +207,9 @@ func WriteStringFile(filePath string, data string) error {
 }
 
 func CreateFilePath(path string) error {
+	path = util.FixPathSeparator(path)
 	if !IsFile(path) {
-		path = strings.Replace(path, "\\", "/", -1)
-		path = path[:strings.LastIndex(path, "/")]
+		path = path[:strings.LastIndex(path, string(os.PathSeparator))]
 		if !IsExist(path) {
 			err := os.MkdirAll(path, os.ModePerm)
 			if err != nil {

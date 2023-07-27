@@ -31,19 +31,20 @@ func (c Config) Build() {
 	if c.Path != "" {
 		c.Path = util.FixPathSeparator(c.Path)
 	}
-	if c.Gen == GenGrpc {
+	switch c.Gen {
+	case GenGrpc:
 		projectPath := c.Path + "/biz/" + c.Name
 		if c.Name != "" {
 			ModelToProtobuf(c.Path+"/biz", c.Name, "/pb"+c.Name, c.Path+"/orm/"+c.DbName+"/model", "model")
 			KitexGen(c.Name, c.Path)
 			CarGen(c.Name, c.DbName, projectPath+"/rpc/kitex_gen/pb"+c.Name, "pb"+c.Name, projectPath+"/service/", "service")
 		}
-	} else if c.Gen == GenDB {
-		GormGen(c.Path, c.DbDsn, c.DbName, strings.Split(c.Tables, ","))
-	} else if c.Gen == GenDoc {
-		openapi.GenFromPath(c.Name, c.Des, c.Version, c.Path, c.Out)
-	} else if c.Gen == GenRouter {
+	case GenRouter:
 		CreateApiRouter(c.Path)
+	case GenDB:
+		GormGen(c.Path, c.DbDsn, c.DbName, strings.Split(c.Tables, ","))
+	case GenDoc:
+		openapi.GenFromPath(c.Name, c.Des, c.Version, c.Path, c.Out)
 	}
 	if c.Path != "" {
 		util.GoFmt(c.Path)

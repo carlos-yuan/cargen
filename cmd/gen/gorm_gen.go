@@ -9,7 +9,7 @@ import (
 
 func GormGen(path, dsn, name string, tables []string) {
 	g := gen.NewGenerator(gen.Config{
-		OutPath:       path + "/orm/" + name + "/query",
+		OutPath:       util.FixPathSeparator(path + "/orm/" + name + "/query"),
 		Mode:          gen.WithoutContext | gen.WithDefaultQuery | gen.WithQueryInterface, // generate mode
 		FieldNullable: true,
 		ModelPkgPath:  "/model",
@@ -38,4 +38,5 @@ func GormGen(path, dsn, name string, tables []string) {
 
 	// Generate the code
 	g.Execute()
+
 }
