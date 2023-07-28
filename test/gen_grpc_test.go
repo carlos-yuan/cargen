@@ -1,10 +1,10 @@
 package test
 
 import (
-	carkitex "github.com/carlos-yuan/cargen/kitex"
+	"github.com/carlos-yuan/cargen/cmd/gen"
 	"testing"
 )
 
 func TestGenGRPC(t *testing.T) {
-	carkitex.KitexGen("user", "D:\\carlos\\hc_enterprise_server")
+	gen.KitexGen("user", "D:\\carlos\\hc_enterprise_server")
 }

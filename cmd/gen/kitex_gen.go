@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"github.com/carlos-yuan/cargen/util"
 	"os/exec"
+	"strings"
 )
 
 func KitexGen(name, path string) {
@@ -14,8 +15,28 @@ func KitexGen(name, path string) {
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	err := cmd.Run()
-	cmd.Process.Kill()
+	if err != nil {
+		if strings.Contains(err.Error(), "executable file not found") {
+			installKitex()
+			KitexGen(name, path)
+		} else {
+			panic(err.Error() + stderr.String())
+		}
+	} else {
+		cmd.Process.Kill()
+	}
+}
+
+func installKitex() {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	cmd := exec.Command("go", "install", "github.com/cloudwego/kitex/tool/cmd/kitex@v0.6.2")
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err := cmd.Run()
 	if err != nil {
 		panic(err.Error() + stderr.String())
+	} else {
+		cmd.Process.Kill()
 	}
 }
