@@ -1,6 +1,7 @@
 package gen
 
 import (
+	carkitex "github.com/carlos-yuan/cargen/kitex"
 	openapi "github.com/carlos-yuan/cargen/open_api"
 	"github.com/carlos-yuan/cargen/util"
 	"strings"
@@ -31,12 +32,15 @@ func (c Config) Build() {
 	if c.Path != "" {
 		c.Path = util.FixPathSeparator(c.Path)
 	}
+	if c.Out != "" {
+		c.Out = util.FixPathSeparator(c.Out)
+	}
 	switch c.Gen {
 	case GenGrpc:
 		projectPath := c.Path + "/biz/" + c.Name
 		if c.Name != "" {
 			ModelToProtobuf(c.Path+"/biz", c.Name, "/pb"+c.Name, c.Path+"/orm/"+c.DbName+"/model", "model")
-			KitexGen(c.Name, c.Path)
+			carkitex.KitexGen(c.Name, c.Path)
 			CarGen(c.Name, c.DbName, projectPath+"/rpc/kitex_gen/pb"+c.Name, "pb"+c.Name, projectPath+"/service/", "service")
 		}
 	case GenRouter:

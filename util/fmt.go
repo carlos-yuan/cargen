@@ -8,7 +8,7 @@ import (
 func GoFmt(path string) {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	cmd := exec.Command("gofmt", "-l", "-w", "-s", "-e", path)
+	cmd := exec.Command("gofmt", "-l", "-w", "-e", path)
 	cmd.Dir = path
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
