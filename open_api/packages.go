@@ -147,7 +147,7 @@ func (pkgs *Packages) GetApi() OpenAPI {
 					method := Method{Tags: []string{s.Name}, OperationId: a.GetOperationId(), Summary: a.Summary, api: &api}
 					a.FillRequestParams(&method)
 					a.FillResponse(&method)
-					api.Paths[name][a.HttpMethod] = method
+					api.Paths[name][strings.ToLower(a.HttpMethod)] = method
 				}
 			}
 		}
