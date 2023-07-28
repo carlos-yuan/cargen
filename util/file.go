@@ -2,6 +2,7 @@ package util
 
 import (
 	"errors"
+	"io"
 	"os"
 	"runtime"
 	"strings"
@@ -183,4 +184,13 @@ func GetFilePath(filepath string, fileName string) ([]string, error) {
 		}
 	}
 	return paths, nil
+}
+
+func ReadAll(filePth string) ([]byte, error) {
+	f, err := os.Open(filePth)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	return io.ReadAll(f)
 }

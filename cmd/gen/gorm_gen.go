@@ -1,18 +1,22 @@
 package gen
 
 import (
+	"fmt"
 	"github.com/carlos-yuan/cargen/util"
 	"gorm.io/driver/mysql"
 	"gorm.io/gen"
 	"gorm.io/gorm"
+	"os"
 )
 
 func GormGen(path, dsn, name string, tables []string) {
+	outPath := util.FixPathSeparator(path + "/orm/" + name + "/query")
+	modelPkgPath := util.FixPathSeparator(path + "/orm/" + name + "/model")
 	g := gen.NewGenerator(gen.Config{
-		OutPath:       util.FixPathSeparator(path + "/orm/" + name + "/query"),
+		OutPath:       outPath,
 		Mode:          gen.WithoutContext | gen.WithDefaultQuery | gen.WithQueryInterface, // generate mode
 		FieldNullable: true,
-		ModelPkgPath:  util.FixPathSeparator(path + "/orm/" + name + "/model"),
+		ModelPkgPath:  modelPkgPath,
 	})
 	g.WithJSONTagNameStrategy(func(columnName string) (tagContent string) {
 		return util.ToCamelFirstLowerCase(columnName)
@@ -26,9 +30,19 @@ func GormGen(path, dsn, name string, tables []string) {
 	// Generate Order Safe API with hand-optimized SQL defined on Querier interface for `model.User` and `model.Company`
 	//g.ApplyInterface(func(Querier){}, model.User{})
 	var tablesObj []interface{}
+	var tablesInfo []TableInfo
 	if len(tables) > 0 {
 		for _, table := range tables {
-			tablesObj = append(tablesObj, g.GenerateModel(table))
+			t := g.GenerateModel(table)
+			tablesInfo = append(tablesInfo, TableInfo{
+				TableName:       t.TableName,
+				FileName:        t.FileName,
+				QueryStructName: t.QueryStructName,
+				ModelStructName: t.ModelStructName,
+				S:               t.S,
+				Generated:       t.Generated,
+			})
+			tablesObj = append(tablesObj, t)
 		}
 	} else {
 		tablesObj = g.GenerateAllTable()
@@ -38,5 +52,62 @@ func GormGen(path, dsn, name string, tables []string) {
 
 	// Generate the code
 	g.Execute()
-
+	generateDaoFile(outPath, tablesInfo)
 }
+
+type TableInfo struct {
+	Generated       bool   // whether to generate db model
+	FileName        string // generated file name
+	S               string // the first letter(lower case)of simple Name (receiver)
+	QueryStructName string // internal query struct name
+	ModelStructName string // origin/model struct name
+	TableName       string // table name in db server
+}
+
+func generateDaoFile(outPath string, tablesInf []TableInfo) {
+	for _, table := range tablesInf {
+		filePath := outPath + string(os.PathSeparator) + table.FileName + ".go"
+		if !util.IsExist(filePath) {
+			code := fmt.Sprintf(databaseDaoTemplate,
+				table.ModelStructName,
+				table.ModelStructName,
+				table.ModelStructName,
+				table.ModelStructName,
+				table.ModelStructName,
+				table.ModelStructName,
+				table.ModelStructName,
+				table.ModelStructName,
+				table.ModelStructName,
+				table.ModelStructName,
+				table.ModelStructName,
+			)
+			err := util.WriteByteFile(filePath, []byte(code))
+			if err != nil {
+				panic(err)
+			}
+		}
+	}
+}
+
+const databaseDaoTemplate = `
+package query
+
+import (
+	"context"
+	"gorm.io/gorm"
+)
+
+type %sDao struct {
+	I%sDo
+}
+
+func (q *Query) Get%sDao(ctx context.Context) *%sDao {
+	return &%sDao{q.%s.WithContext(ctx)}
+}
+
+func (q *Query) Get%sDaoWithTx(ctx context.Context, tx *gorm.DB) *%sDao {
+	dao := %sDao{q.%s.WithContext(ctx)}
+	dao.I%sDo.ReplaceDB(tx)
+	return &dao
+}
+`
