@@ -306,7 +306,7 @@ func (a *Arguments) BuildCmd(out io.Writer) *exec.Cmd {
 		for _, inc := range a.Includes {
 			cmd.Args = append(cmd.Args, "-I", inc)
 		}
-		outPath := util.JoinPath(a.OutputPath, string(os.PathSeparator), a.GenPath)
+		outPath := a.OutputPath + string(os.PathSeparator) + a.GenPath
 		cmd.Args = append(cmd.Args,
 			"--plugin=protoc-gen-kitex="+exe,
 			"--kitex_out="+outPath,
