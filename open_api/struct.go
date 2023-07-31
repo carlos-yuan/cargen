@@ -116,7 +116,13 @@ func (sct *Struct) GetStructFromAstStructType(s *ast.StructType) {
 						f.Struct = &Struct{}
 					}
 					f.Struct.Type = field.Pkg
-					f.Struct.GetStructFromAstStructType(fd.Type.(*ast.StructType))
+					if st, ok := fd.Type.(*ast.StructType); ok {
+						f.Struct.GetStructFromAstStructType(st)
+					} else if arraytype, ok := fd.Type.(*ast.ArrayType); ok {
+						if st, ok := arraytype.Elt.(*ast.StructType); ok {
+							f.Struct.GetStructFromAstStructType(st)
+						}
+					}
 				} else {
 					f.Array = field.Array
 					f.Type = field.Type
@@ -127,6 +133,7 @@ func (sct *Struct) GetStructFromAstStructType(s *ast.StructType) {
 						f.Pkg = sct.pkg.Name
 						f.PkgPath = sct.pkg.Path
 					}
+					f.Struct = sct.pkg.pkgs.FindStructPtr(f.PkgPath, f.Pkg, f.Type)
 				}
 			}
 			sct.Fields = append(sct.Fields, f)

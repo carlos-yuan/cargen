@@ -377,12 +377,6 @@ func (a *Api) getParameterStruct(expr ast.Expr) *Struct {
 				case *ast.StructType:
 					structType = st
 				case *ast.Ident:
-					defer func() {
-						r := recover()
-						if r != nil {
-							println(st)
-						}
-					}()
 					if st.Obj != nil {
 						structType = st.Obj.Decl.(*ast.TypeSpec).Type.(*ast.StructType)
 					}

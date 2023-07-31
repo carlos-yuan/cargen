@@ -167,6 +167,8 @@ func (f Field) ToProperty(storey, deep int) []Property {
 					property.Type = PropertyTypeArray
 					p = append(p, property)
 				}
+			} else {
+
 			}
 		}
 	} else { //一般类型
