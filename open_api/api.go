@@ -28,7 +28,7 @@ type Api struct {
 }
 
 func (a *Api) GetOperationId() string {
-	return a.sct.pkg.Path + "." + a.Name + "." + a.HttpMethod
+	return strings.ReplaceAll(a.sct.pkg.Path, "/", ".") + "." + a.Name + "." + a.HttpMethod
 }
 
 func (a *Api) GetApiPath() string {
