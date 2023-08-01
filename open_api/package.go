@@ -3,6 +3,10 @@ package openapi
 import (
 	"github.com/carlos-yuan/cargen/util"
 	"go/ast"
+	"gopkg.in/yaml.v3"
+	"log"
+	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -13,6 +17,7 @@ type Package struct {
 	Structs map[string]*Struct //所有结构体信息
 	astPkg  *ast.Package
 	pkgs    *Packages
+	config  *Config
 }
 
 type CreatePackageOpt struct {
@@ -22,6 +27,31 @@ type CreatePackageOpt struct {
 
 func (pkg *Package) GetAstPkg() *ast.Package {
 	return pkg.astPkg
+}
+
+const ConfigFileName = "server_origin.yaml"
+
+func (pkg *Package) FindConfig() {
+	if pkg.config != nil {
+		return
+	}
+	err := filepath.Walk(pkg.ModPath, func(path string, info os.FileInfo, err error) error {
+		if info.Name() == ConfigFileName {
+			b, err := util.ReadAll(path)
+			if err != nil {
+				log.Println(err)
+			}
+			pkg.config = &Config{}
+			err = yaml.Unmarshal(b, pkg.config)
+			if err != nil {
+				log.Println(err)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		println(err.Error())
+	}
 }
 
 // FindPkgStruct 设置包内的结构体

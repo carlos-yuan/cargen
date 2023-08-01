@@ -36,15 +36,23 @@ func (a *Api) GetApiPath() string {
 }
 
 func (a *Api) GetRequestPath() string {
-	name := "/" + util.FistToLower(a.Group) + "/" + util.FistToLower(a.Name)
-	if a.RequestPath != "" {
-		if a.RequestPath == "-" {
-			name = "/" + util.FistToLower(a.Group)
+	prefix := "/"
+	if a.sct.pkg.config != nil && len(a.sct.pkg.config.Web.Prefix) > 0 {
+		if a.sct.pkg.config.Web.Prefix[0] != '/' {
+			prefix += a.sct.pkg.config.Web.Prefix
 		} else {
-			name = "/" + util.FistToLower(a.Group) + "/" + a.RequestPath
+			prefix = a.sct.pkg.config.Web.Prefix
 		}
 	}
-	return name
+	name := util.FistToLower(a.Group) + "/" + util.FistToLower(a.Name)
+	if a.RequestPath != "" {
+		if a.RequestPath == "-" {
+			name = util.FistToLower(a.Group)
+		} else {
+			name = util.FistToLower(a.Group) + "/" + a.RequestPath
+		}
+	}
+	return prefix + name
 }
 
 func (a *Api) GetRequestPathNoGroup() string {

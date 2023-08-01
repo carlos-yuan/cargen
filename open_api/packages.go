@@ -29,34 +29,7 @@ func GenFromPath(name, des, version, path, out string) {
 type Packages []Package
 
 func (pkgs *Packages) Init(base string) {
-	files, err := util.GetFilePath(base, "go.mod")
-	if err != nil {
-		panic(err)
-	}
-	for _, file := range files {
-		goModFilePathData, _ := os.ReadFile(file)
-		modFile, _ := modfile.Parse("go.mod", goModFilePathData, nil)
-		path, err := util.CutPathLast(file, 1)
-		if err != nil {
-			continue
-		}
-		pathChild, err := util.GetAllPath(path)
-		if err != nil {
-			continue
-		}
-		//获取所有包和结构体定义
-		for _, s := range pathChild {
-			pkg := modFile.Module.Mod.Path + "/" + s[len(path)+1:]
-			pkg = strings.ReplaceAll(pkg, "\\", "/")
-			packages := pkgs.GenPackage(pkg, s)
-			for i := range packages {
-				packages[i].ModPath = path
-			}
-			*pkgs = append(*pkgs, packages...)
-		}
-	}
-	//填充字段为结构体的依赖
-	pkgs.FillPkgRelationStruct()
+	pkgs.InitPackages(base)
 	//查找API定义
 	for i := range *pkgs {
 		(*pkgs)[i].FindPkgApi()
@@ -86,15 +59,16 @@ func (pkgs *Packages) InitPackages(base string) {
 			packages := pkgs.GenPackage(pkg, s)
 			for i := range packages {
 				packages[i].ModPath = path
+				packages[i].FindConfig()
+				*pkgs = append(*pkgs, *packages[i])
 			}
-			*pkgs = append(*pkgs, packages...)
 		}
 	}
 	//填充字段为结构体的依赖
 	pkgs.FillPkgRelationStruct()
 }
 
-func (pkgs *Packages) GenPackage(pkgPath, path string) []Package {
+func (pkgs *Packages) GenPackage(pkgPath, path string) []*Package {
 	astPkg, err := util.GetPackages(path)
 	if err != nil {
 		fserr, ok := err.(*fs.PathError)
@@ -108,10 +82,10 @@ func (pkgs *Packages) GenPackage(pkgPath, path string) []Package {
 			panic(err)
 		}
 	}
-	var list []Package
+	var list []*Package
 	//查找结构体定义
 	for _, pkg := range astPkg {
-		p := Package{Name: pkg.Name, Path: pkgPath, Structs: make(map[string]*Struct), astPkg: pkg, pkgs: pkgs}
+		p := &Package{Name: pkg.Name, Path: pkgPath, Structs: make(map[string]*Struct), astPkg: pkg, pkgs: pkgs}
 		p.FindPkgStruct()
 		list = append(list, p)
 	}

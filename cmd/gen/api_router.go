@@ -79,7 +79,8 @@ import (
 func init() {
 	err := config.Container.Invoke(func(t *%s, c *config.Config) {
 		t.ControllerContext = ctl.NewGinContext(&c.Web)
-		prefix := c.Web.Prefix + strings.ToLower(reflect.TypeOf(t).Elem().Name())
+		typ := reflect.TypeOf(t).Elem()
+		prefix := c.Web.Prefix + strings.ToLower(typ.PkgPath()[:strings.Index(typ.PkgPath(), "/")]) + "/" + strings.ToLower(typ.Name())
 		routerList = append(routerList,
 %s
 		)
