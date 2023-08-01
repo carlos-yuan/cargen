@@ -44,7 +44,8 @@ func (a *Api) GetRequestPath() string {
 			prefix = a.sct.pkg.config.Web.Prefix
 		}
 	}
-	name := util.FistToLower(a.Group) + "/" + util.FistToLower(a.Name)
+	prefix += a.sct.pkg.Path[:strings.Index(a.sct.pkg.Path, "/")+1]    //包名
+	name := util.FistToLower(a.Group) + "/" + util.FistToLower(a.Name) //结构体名+方法名
 	if a.RequestPath != "" {
 		if a.RequestPath == "-" {
 			name = util.FistToLower(a.Group)
