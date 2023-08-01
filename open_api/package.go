@@ -29,7 +29,7 @@ func (pkg *Package) GetAstPkg() *ast.Package {
 	return pkg.astPkg
 }
 
-const ConfigFileName = "config.yaml"
+const ConfigFileName = "config_origin.yaml"
 
 func (pkg *Package) FindConfig() {
 	if pkg.config != nil {

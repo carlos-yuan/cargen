@@ -1,12 +1,19 @@
 package openapi
 
+import (
+	"bytes"
+	"encoding/json"
+	"sort"
+	"strings"
+)
+
 type OpenAPI struct {
-	Openapi    string                       `json:"openapi,omitempty"`
-	Info       Info                         `json:"info,omitempty"`
-	Servers    []Server                     `json:"servers,omitempty"`
-	Tags       []Tag                        `json:"tags,omitempty"`
-	Paths      map[string]map[string]Method `json:"paths,omitempty"`
-	Components Components                   `json:"components,omitempty"`
+	Openapi    string      `json:"openapi,omitempty"`
+	Info       Info        `json:"info,omitempty"`
+	Servers    []Server    `json:"servers,omitempty"`
+	Tags       []Tag       `json:"tags,omitempty"`
+	Paths      ApiPathsMap `json:"paths,omitempty"`
+	Components Components  `json:"components,omitempty"`
 }
 
 type Info struct {
@@ -169,4 +176,46 @@ type Response struct {
 type Header struct {
 	Description string   `json:"description,omitempty"`
 	Schema      Property `json:"schema,omitempty"`
+}
+
+type ApiPathsMap map[string]map[string]Method
+
+func (m ApiPathsMap) MarshalJSON() ([]byte, error) {
+	var keys1 []string
+	for key1 := range m {
+		keys1 = append(keys1, key1)
+	}
+	sort.Slice(keys1, func(i, j int) bool {
+		return strings.Compare(keys1[i], keys1[j]) == 1
+	})
+	var buf bytes.Buffer
+	buf.WriteString(`{`)
+	for i, key := range keys1 {
+		var keys2 []string
+		for key2 := range m[key] {
+			keys2 = append(keys2, key2)
+		}
+		sort.Slice(keys2, func(i, j int) bool {
+			return strings.Compare(keys2[i], keys2[j]) == 1
+		})
+		buf.WriteString(`"` + key + `":{`)
+		for i, key2 := range keys2 {
+			method, err := json.Marshal(m[key][key2])
+			if err != nil {
+				println(err.Error())
+			}
+			if i != len(keys2)-1 {
+				buf.WriteString(`"` + key2 + `":` + string(method) + `,`)
+			} else {
+				buf.WriteString(`"` + key2 + `":` + string(method))
+			}
+		}
+		if i != len(keys1)-1 {
+			buf.WriteString(`},`)
+		} else {
+			buf.WriteString(`}`)
+		}
+	}
+	buf.WriteString(`}`)
+	return buf.Bytes(), nil
 }
