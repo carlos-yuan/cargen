@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"log"
 	"os"
+	"sort"
 	"strings"
 	"syscall"
 )
@@ -129,6 +130,10 @@ func (pkgs *Packages) GetApi() OpenAPI {
 	for _, tag := range apiTags {
 		api.Tags = append(api.Tags, tag)
 	}
+	// 将tags排序
+	sort.Slice(api.Tags, func(i, j int) bool {
+		return strings.Compare(api.Tags[i].Name, api.Tags[j].Name) == 1
+	})
 	return api
 }
 

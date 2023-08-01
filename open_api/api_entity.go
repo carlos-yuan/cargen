@@ -178,6 +178,7 @@ type Header struct {
 	Schema      Property `json:"schema,omitempty"`
 }
 
+// ApiPathsMap api解决乱序问题
 type ApiPathsMap map[string]map[string]Method
 
 func (m ApiPathsMap) MarshalJSON() ([]byte, error) {
@@ -202,7 +203,7 @@ func (m ApiPathsMap) MarshalJSON() ([]byte, error) {
 		for i, key2 := range keys2 {
 			method, err := json.Marshal(m[key][key2])
 			if err != nil {
-				println(err.Error())
+				return nil, err
 			}
 			if i != len(keys2)-1 {
 				buf.WriteString(`"` + key2 + `":` + string(method) + `,`)
