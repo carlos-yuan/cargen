@@ -122,6 +122,11 @@ func (pkgs *Packages) GetApi() OpenAPI {
 					method := Method{Tags: []string{s.Name}, OperationId: a.GetOperationId(), Summary: a.Summary, api: &api}
 					a.FillRequestParams(&method)
 					a.FillResponse(&method)
+					a.FillSecurity(&method)
+					if a.Auth == AuthTypeJWT {
+						api.Components.SetSecurityScheme(a.AuthTo, SecurityScheme{Type: "http", Scheme: "bearer", BearerFormat: a.Auth, Description: a.AuthTo})
+					}
+
 					api.Paths[name][strings.ToLower(a.HttpMethod)] = method
 				}
 			}
@@ -132,7 +137,7 @@ func (pkgs *Packages) GetApi() OpenAPI {
 	}
 	// 将tags排序
 	sort.Slice(api.Tags, func(i, j int) bool {
-		return strings.Compare(api.Tags[i].Name, api.Tags[j].Name) == 1
+		return strings.Compare(api.Tags[i].Name, api.Tags[j].Name) == -1
 	})
 	return api
 }

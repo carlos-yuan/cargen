@@ -43,7 +43,7 @@ var DefaultInfo = OpenAPI{
 		Responses:       make(map[string]Response),
 		Headers:         make(map[string]Header),
 		RequestBodies:   make(map[string]RequestBody),
-		SecuritySchemes: make(map[string]SecurityScheme),
+		SecuritySchemes: make(map[string]*SecurityScheme),
 	},
 	Paths: make(map[string]map[string]Method),
 }
@@ -65,14 +65,14 @@ type ExternalDocs struct {
 }
 
 type Method struct {
-	Tags        []string                    `json:"tags,omitempty"`
-	Summary     string                      `json:"summary,omitempty"`
-	Description string                      `json:"description,omitempty"`
-	OperationId string                      `json:"operationId,omitempty"`
-	Parameters  []Parameter                 `json:"parameters,omitempty"`
-	RequestBody RequestBody                 `json:"requestBody,omitempty"`
-	Responses   map[string]Response         `json:"responses,omitempty"`
-	Security    []map[string]SecurityScheme `json:"security,omitempty"`
+	Tags        []string              `json:"tags,omitempty"`
+	Summary     string                `json:"summary,omitempty"`
+	Description string                `json:"description,omitempty"`
+	OperationId string                `json:"operationId,omitempty"`
+	Parameters  []Parameter           `json:"parameters,omitempty"`
+	RequestBody RequestBody           `json:"requestBody,omitempty"`
+	Responses   map[string]Response   `json:"responses,omitempty"`
+	Security    []map[string][]string `json:"security,omitempty"`
 	api         *OpenAPI
 }
 
@@ -87,7 +87,7 @@ type Components struct {
 
 	Headers map[string]Header `json:"headers,omitempty"`
 
-	SecuritySchemes map[string]SecurityScheme `json:"securitySchemes,omitempty"`
+	SecuritySchemes map[string]*SecurityScheme `json:"securitySchemes,omitempty"`
 }
 
 func (c Components) GetSchemasName() string {
@@ -114,10 +114,22 @@ func (c Components) GetSecuritySchemesName() string {
 	return "#/components/securitySchemes/"
 }
 
+func (c *Components) SetSecurityScheme(name string, scheme SecurityScheme) {
+	if c.SecuritySchemes == nil {
+		c.SecuritySchemes = make(map[string]*SecurityScheme)
+	} else if c.SecuritySchemes[name] != nil {
+		return
+	}
+	c.SecuritySchemes[name] = &scheme
+}
+
 type SecurityScheme struct {
-	Type        string            `json:"type,omitempty"`
-	Description string            `json:"description,omitempty"`
-	Flows       []map[string]Flow `json:"flows,omitempty"`
+	Type         string            `json:"type,omitempty"`
+	Scheme       string            `json:"scheme,omitempty"`
+	BearerFormat string            `json:"bearerFormat,omitempty"`
+	Description  string            `json:"description,omitempty"`
+	In           string            `json:"in,omitempty"`
+	Flows        []map[string]Flow `json:"flows,omitempty"`
 }
 
 type Flow struct {
@@ -187,7 +199,7 @@ func (m ApiPathsMap) MarshalJSON() ([]byte, error) {
 		keys1 = append(keys1, key1)
 	}
 	sort.Slice(keys1, func(i, j int) bool {
-		return strings.Compare(keys1[i], keys1[j]) == 1
+		return strings.Compare(keys1[i], keys1[j]) == -1
 	})
 	var buf bytes.Buffer
 	buf.WriteString(`{`)
@@ -197,7 +209,7 @@ func (m ApiPathsMap) MarshalJSON() ([]byte, error) {
 			keys2 = append(keys2, key2)
 		}
 		sort.Slice(keys2, func(i, j int) bool {
-			return strings.Compare(keys2[i], keys2[j]) == 1
+			return strings.Compare(keys2[i], keys2[j]) == -1
 		})
 		buf.WriteString(`"` + key + `":{`)
 		for i, key2 := range keys2 {

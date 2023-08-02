@@ -21,6 +21,7 @@ type Api struct {
 	Annotate     string  `json:"annotate"`     //注释
 	Path         string  `json:"path"`         //文件地址
 	Auth         string  `json:"auth"`         //授权方式
+	AuthTo       string  `json:"authTo"`       //授权方式
 	ResponseType string  `json:"responseType"` //返回类型
 	Params       *Struct `json:"params"`       //参数 string为路径 Parameter为对象
 	Response     *Struct `json:"response"`     //返回结构体
@@ -156,8 +157,14 @@ annotate:
 			continue
 		}
 		for _, s := range AuthType {
-			if s == annotate {
-				a.Auth += s + " "
+			if len(annotate) >= len(s) && s == annotate[:len(s)] {
+				a.Auth = s
+				as := strings.Split(annotate, ":")
+				if len(as) == 2 {
+					a.AuthTo = as[1]
+				} else {
+					a.AuthTo = a.Auth
+				}
 				continue annotate
 			}
 		}
@@ -659,5 +666,15 @@ func (a *Api) FillResponse(method *Method) {
 			}
 		}
 
+	}
+}
+
+// FillSecurity 填充Security
+func (a *Api) FillSecurity(method *Method) {
+	if a.Auth == "" {
+		return
+	}
+	if a.Auth == AuthTypeJWT {
+		method.Security = []map[string][]string{{a.AuthTo: []string{}}}
 	}
 }
