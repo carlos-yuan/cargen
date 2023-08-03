@@ -54,11 +54,16 @@ func GetTagInfo(fieldTag string) (tag, name, validate string) {
 	for _, tagParam := range tagParams {
 		val := st.Get(tagParam)
 		if val != "" {
-			tag = tagParam
-			if tag == TagParamPath {
-				tag = OpenApiInPath
+			if name == "" {
+				tagName := util.GetTagName(val)
+				if tagName != "" && tagName != "-" { //json偶尔不需要序列化时，可能造成参数生成错误
+					name = tagName
+					tag = tagParam
+					if tag == TagParamPath {
+						tag = OpenApiInPath
+					}
+				}
 			}
-			name = util.GetJsonNameFromTag(val)
 		}
 	}
 	validate = st.Get(TagValidate)

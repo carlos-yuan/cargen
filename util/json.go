@@ -86,7 +86,7 @@ func MapToAssciiSortJson(m map[string]interface{}) string {
 	return buffer.String()
 }
 
-func GetJsonNameFromTag(tag string) string {
+func GetTagName(tag string) string {
 	if strings.Index(tag, ",") != -1 {
 		return tag[:strings.Index(tag, ",")]
 	}
