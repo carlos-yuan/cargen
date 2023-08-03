@@ -631,7 +631,9 @@ func (a *Api) FillRequestParams(method *Method) {
 				properties[property.Name] = property
 			}
 		}
-		method.RequestBody = RequestBody{Content: map[string]Content{"application/json": {Schema: Property{Type: PropertyTypeObject, Properties: properties}}}}
+		prop := Property{Type: PropertyTypeObject, Properties: properties}
+		prop.FillRequired()
+		method.RequestBody = RequestBody{Content: map[string]Content{"application/json": {Schema: prop}}}
 	}
 }
 

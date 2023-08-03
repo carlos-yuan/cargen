@@ -1,6 +1,7 @@
 package gen
 
 import (
+	"github.com/carlos-yuan/cargen/enum"
 	openapi "github.com/carlos-yuan/cargen/open_api"
 	"github.com/carlos-yuan/cargen/util"
 	"strings"
@@ -8,15 +9,20 @@ import (
 )
 
 type Config struct {
-	Gen     string //生成类型
-	Path    string //基础项目路径
-	Name    string //服务名
-	Des     string //描述
-	Version string //版本
-	DbDsn   string //数据库Dsn
-	Tables  string //数据表 ,隔开
-	DbName  string //库别名 避免名称过长或者库名差异
-	Out     string //输出目录
+	Gen       string //生成类型
+	Path      string //基础项目路径
+	Name      string //服务名
+	Des       string //描述
+	Version   string //版本
+	DbDsn     string //数据库Dsn
+	Tables    string //数据表 ,隔开
+	DbName    string //库别名 避免名称过长或者库名差异
+	DictTable string //字典表名
+	DictType  string //字典类型字段名
+	DictName  string //字典名称字段名
+	DictLabel string //字典标签字段名
+	DictValue string //字典值字段名
+	Out       string //输出目录
 }
 
 const (
@@ -24,6 +30,7 @@ const (
 	GenDB     = "database"
 	GenDoc    = "doc"
 	GenRouter = "router"
+	GenEnum   = "enum"
 )
 
 func (c Config) Build() {
@@ -46,8 +53,13 @@ func (c Config) Build() {
 		CreateApiRouter(c.Path)
 	case GenDB:
 		GormGen(c.Path, c.DbDsn, c.DbName, strings.Split(c.Tables, ","))
+		if c.DictTable != "" { //检测是否传入字典表
+			enum.GenEnum(c.Path, c.DictTable, c.DictType, c.DictName, c.DictLabel, c.DictValue, c.DbDsn)
+		}
 	case GenDoc:
 		openapi.GenFromPath(c.Name, c.Des, c.Version, c.Path, c.Out)
+	case GenEnum:
+		enum.GenEnum(c.Path, c.DictTable, c.DictType, c.DictName, c.DictLabel, c.DictValue, c.DbDsn)
 	}
 	if c.Path != "" {
 		util.GoFmt(c.Path)

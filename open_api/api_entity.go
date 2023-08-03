@@ -139,16 +139,29 @@ type Flow struct {
 }
 
 type Property struct {
-	Name        string              `json:"-"`
-	Type        string              `json:"type,omitempty"`
-	Description string              `json:"description,omitempty"`
-	Format      string              `json:"format,omitempty"`
-	Ref         string              `json:"$ref,omitempty"`
+	Name        string `json:"-"`
+	Type        string `json:"type,omitempty"`
+	Description string `json:"description,omitempty"`
+	Format      string `json:"format,omitempty"`
+	Ref         string `json:"$ref,omitempty"`
+	isRequired  bool
 	Required    []string            `json:"required,omitempty"`
 	Items       *Property           `json:"items,omitempty"` //数组
 	File        *Property           `json:"file,omitempty"`
 	Properties  map[string]Property `json:"properties,omitempty"`
 	Enum        []string            `json:"enum,omitempty"`
+}
+
+// FillRequired 遍历找出所有必传字段
+func (p *Property) FillRequired() {
+	for _, item := range p.Properties {
+		if item.isRequired {
+			p.Required = append(p.Required, item.Name)
+			if len(item.Properties) > 0 {
+				item.FillRequired()
+			}
+		}
+	}
 }
 
 const (

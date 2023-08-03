@@ -16,6 +16,10 @@ func main() {
 	flag.StringVar(&conf.Out, "o", "", "output path")
 	flag.StringVar(&conf.Des, "des", "", "description")
 	flag.StringVar(&conf.Version, "v", "", "版本")
+	flag.StringVar(&conf.DictTable, "dictTable", "", "字典表名")
+	flag.StringVar(&conf.DictType, "dictType", "type", "字典名称字段名")
+	flag.StringVar(&conf.DictName, "dictName", "name", "字典标签字段名")
+	flag.StringVar(&conf.DictValue, "dictValue", "value", "字典值字段名")
 	flag.Parse()
 	if conf.Path == "" {
 		panic("项目目录不能为空")

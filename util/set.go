@@ -2,7 +2,7 @@ package util
 
 type Empty struct{}
 
-func MapToSplice[T comparable, V comparable](m map[T]V) []T {
+func MapToSplice[T comparable, V any](m map[T]V) []T {
 	list := make([]T, len(m))
 	i := 0
 	for k := range m {

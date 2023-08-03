@@ -104,7 +104,7 @@ func (f Field) ToProperty(storey, deep int) []Property {
 				p = append(p, field.ToProperty(storey+1, deep)...)
 			}
 		} else { //嵌套对象
-			property := Property{Name: f.ParamName, Description: f.Comment, Properties: make(map[string]Property)}
+			property := Property{Name: f.ParamName, Description: f.ToParameter().Description, isRequired: f.IsRequired(), Properties: make(map[string]Property)}
 			if f.Array {
 				property.Type = PropertyTypeArray
 			} else {
@@ -117,7 +117,7 @@ func (f Field) ToProperty(storey, deep int) []Property {
 					if len(pps) == 0 {
 						continue
 					}
-					p := Property{Name: field.ParamName, Description: field.Comment, Properties: make(map[string]Property)}
+					p := Property{Name: field.ParamName, Description: field.ToParameter().Description, isRequired: field.IsRequired(), Properties: make(map[string]Property)}
 					if len(pps) == 1 {
 						p = pps[0]
 					} else {
@@ -146,9 +146,6 @@ func (f Field) ToProperty(storey, deep int) []Property {
 					}
 					fpps = append(fpps, p)
 				}
-				if len(fpps) == 1 {
-
-				}
 				if !f.Array {
 					if len(fpps) == 1 && baseTypes.CheckIn(fpps[0].Type) {
 						p = append(p, fpps[0])
@@ -172,17 +169,15 @@ func (f Field) ToProperty(storey, deep int) []Property {
 					property.Type = PropertyTypeArray
 					p = append(p, property)
 				}
-			} else {
-
 			}
 		}
 	} else { //一般类型
 		if f.Array { //数组类型
-			pp := Property{Name: f.ParamName, Description: f.Comment, Type: PropertyTypeArray, Format: f.Type}
+			pp := Property{Name: f.ParamName, Description: f.ToParameter().Description, isRequired: f.IsRequired(), Type: PropertyTypeArray, Format: f.Type}
 			pp.Items = &Property{Type: f.GetOpenApiType()}
 			p = append(p, pp)
 		} else {
-			p = append(p, Property{Name: f.ParamName, Description: f.Comment, Type: f.GetOpenApiType(), Format: f.Type})
+			p = append(p, Property{Name: f.ParamName, Description: f.ToParameter().Description, isRequired: f.IsRequired(), Type: f.GetOpenApiType(), Format: f.Type})
 		}
 	}
 	return p
@@ -202,6 +197,10 @@ func (f Field) ToParameter() Parameter {
 		}
 	}
 	return param
+}
+
+func (f Field) IsRequired() bool {
+	return f.Validate != ""
 }
 
 func (f *Field) GetOpenApiIn() string {
