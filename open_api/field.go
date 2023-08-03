@@ -3,6 +3,7 @@ package openapi
 import (
 	"github.com/carlos-yuan/cargen/util"
 	"reflect"
+	"strings"
 )
 
 type Field struct {
@@ -173,11 +174,11 @@ func (f Field) ToProperty(storey, deep int) []Property {
 		}
 	} else { //一般类型
 		if f.Array { //数组类型
-			pp := Property{Name: f.ParamName, Description: f.ToParameter().Description, isRequired: f.IsRequired(), Type: PropertyTypeArray, Format: f.Type}
+			pp := Property{Name: f.ParamName, Description: f.ToParameter().Description, isRequired: f.IsRequired(), Type: PropertyTypeArray, Format: f.GetType()}
 			pp.Items = &Property{Type: f.GetOpenApiType()}
 			p = append(p, pp)
 		} else {
-			p = append(p, Property{Name: f.ParamName, Description: f.ToParameter().Description, isRequired: f.IsRequired(), Type: f.GetOpenApiType(), Format: f.Type})
+			p = append(p, Property{Name: f.ParamName, Description: f.ToParameter().Description, isRequired: f.IsRequired(), Type: f.GetOpenApiType(), Format: f.GetType()})
 		}
 	}
 	return p
@@ -188,7 +189,7 @@ func (f Field) ToParameter() Parameter {
 		Name:        f.ParamName,
 		In:          f.GetOpenApiIn(),
 		Description: f.Comment,
-		Schema:      Property{Type: f.GetOpenApiType(), Format: f.Type},
+		Schema:      Property{Type: f.GetOpenApiType(), Format: f.GetType()},
 	}
 	if f.Validate != "" {
 		param.Required = true
@@ -208,6 +209,24 @@ func (f *Field) GetOpenApiIn() string {
 		return OpenApiInQuery
 	}
 	return f.In
+}
+
+func (f *Field) GetType() string {
+	if f.Tag != "" { //处理string tag ID int64 `json:"id,string"`
+		st := reflect.StructTag(f.Tag[1 : len(f.Tag)-1])
+		jsonTag := st.Get("json")
+		tags := strings.Split(jsonTag, ",")
+		if len(tags) > 1 {
+			if tags[0] == f.ParamName { //第一个参数id是否匹配
+				for i := 1; i < len(tags); i++ {
+					if tags[i] == "string" {
+						f.Type = "string"
+					}
+				}
+			}
+		}
+	}
+	return f.Type
 }
 
 func (f *Field) GetOpenApiType() string {
