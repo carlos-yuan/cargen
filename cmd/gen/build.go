@@ -54,7 +54,7 @@ func (c Config) Build() {
 	case GenDB:
 		GormGen(c.Path, c.DbDsn, c.DbName, strings.Split(c.Tables, ","))
 		if c.DictTable != "" { //检测是否传入字典表
-			enum.GenEnum(c.Path, c.DictTable, c.DictType, c.DictName, c.DictLabel, c.DictValue, c.DbDsn)
+			enum.GenEnum(c.Path+"/orm/", c.DictTable, c.DictType, c.DictName, c.DictLabel, c.DictValue, c.DbDsn)
 		}
 	case GenDoc:
 		openapi.GenFromPath(c.Name, c.Des, c.Version, c.Path, c.Out)
