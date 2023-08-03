@@ -50,8 +50,14 @@ func GenEnum(path, dictTable, dictType, dictName, dictLabel, dictValue, dsn stri
 				panic(err)
 			}
 			constName := d.Type + d.Name
-			constCode += fmt.Sprintf(enumConstTemplate, constName, val)
+			constCode += fmt.Sprintf(enumConstTemplate, constName, key, val)
 			caseCode += fmt.Sprintf(enumCaseTemplate, constName, strings.ReplaceAll(d.Label, `"`, `\"`))
+		}
+		if len(caseCode) > 0 {
+			caseCode = caseCode[:len(caseCode)-1]
+		}
+		if len(constCode) > 0 {
+			constCode = constCode[:len(constCode)-1]
 		}
 		if len(constCode) > 0 {
 			buf.WriteString(fmt.Sprintf(enumTemplate, key, constCode, key, caseCode))
@@ -70,12 +76,12 @@ type Dict struct {
 	Value string
 }
 
-const enumConstTemplate = `	%s = %d
+const enumConstTemplate = `	%s %s= %d
 `
 
-const enumCaseTemplate = `
-	case %s:
-		return "%s"`
+const enumCaseTemplate = `	case %s:
+		return "%s"
+`
 
 const enumTemplate = `
 type %s int
