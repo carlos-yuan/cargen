@@ -111,7 +111,7 @@ func (f Field) ToProperty(storey, deep int) []Property {
 			} else {
 				property.Type = PropertyTypeObject
 			}
-			if f.Struct != nil {
+			if f.Struct != nil { //字段的结构体不为空时，寻找字段定义
 				var fpps []Property
 				for _, field := range f.Struct.Fields {
 					pps := field.ToProperty(storey+1, deep)
@@ -147,17 +147,13 @@ func (f Field) ToProperty(storey, deep int) []Property {
 					}
 					fpps = append(fpps, p)
 				}
-				if !f.Array {
-					if len(fpps) == 1 && baseTypes.CheckIn(fpps[0].Type) {
-						p = append(p, fpps[0])
-					} else {
-						for _, fp := range fpps {
-							property.Properties[fp.Name] = fp
-						}
-						property.Type = PropertyTypeObject
-						p = append(p, property)
+				if !f.Array { //字段为结构体
+					for _, fp := range fpps {
+						property.Properties[fp.Name] = fp
 					}
-				} else {
+					property.Type = PropertyTypeObject
+					p = append(p, property)
+				} else { //字段为数组
 					pp := Property{Properties: make(map[string]Property)}
 					if len(fpps) == 1 && baseTypes.CheckIn(fpps[0].Type) {
 						pp = fpps[0]
