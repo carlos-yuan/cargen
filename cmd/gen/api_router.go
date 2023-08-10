@@ -3,10 +3,11 @@ package gen
 import (
 	"bytes"
 	"fmt"
-	openapi "github.com/carlos-yuan/cargen/open_api"
-	"github.com/carlos-yuan/cargen/util"
 	"sort"
 	"strings"
+
+	openapi "github.com/carlos-yuan/cargen/open_api"
+	"github.com/carlos-yuan/cargen/util"
 )
 
 // CreateApiRouter 生成api路由
@@ -70,6 +71,7 @@ package router
 import (
 	"comm/config"
 	ctl "comm/controller"
+	"comm/convert"
 	"github.com/gin-gonic/gin"
 	"reflect"
 	"strings"
@@ -80,7 +82,7 @@ func init() {
 	err := config.Container.Invoke(func(t *%s, c *config.Config) {
 		t.ControllerContext = ctl.NewGinContext(&c.Web)
 		typ := reflect.TypeOf(t).Elem()
-		prefix := c.Web.Prefix + strings.ToLower(typ.PkgPath()[:strings.Index(typ.PkgPath(), "/")]) + "/" + strings.ToLower(typ.Name())
+		prefix := c.Web.Prefix + strings.ToLower(typ.PkgPath()[:strings.Index(typ.PkgPath(), "/")]) + "/" + convert.FistToLower(typ.Name())
 		routerList = append(routerList,
 %s
 		)

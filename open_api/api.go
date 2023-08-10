@@ -2,12 +2,13 @@ package openapi
 
 import (
 	"bytes"
-	"github.com/carlos-yuan/cargen/util"
 	"go/ast"
 	"go/format"
 	"go/token"
 	"net/http"
 	"strings"
+
+	"github.com/carlos-yuan/cargen/util"
 )
 
 type Api struct {
@@ -273,8 +274,12 @@ func (a *Api) GetParameterStruct(expr ast.Expr) *Struct {
 				case *ast.StructType: //var params struct {}
 					structType = st
 				case *ast.Ident: //var params Params
-					structType = st.Obj.Decl.(*ast.TypeSpec).Type.(*ast.StructType)
-					structName = st.Obj.Decl.(*ast.TypeSpec).Name.Name
+					if st.Obj != nil {
+						structType = st.Obj.Decl.(*ast.TypeSpec).Type.(*ast.StructType)
+						structName = st.Obj.Decl.(*ast.TypeSpec).Name.Name
+					} else {
+						structName = st.Name
+					}
 				}
 			} else if stmt, ok := id.Obj.Decl.(*ast.AssignStmt); ok {
 				if com, ok := stmt.Rhs[0].(*ast.CompositeLit); ok {

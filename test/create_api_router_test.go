@@ -1,10 +1,11 @@
 package test
 
 import (
-	"github.com/carlos-yuan/cargen/cmd/gen"
 	"testing"
+
+	"github.com/carlos-yuan/cargen/cmd/gen"
 )
 
 func TestCreateApiRouter(t *testing.T) {
-	gen.CreateApiRouter("D:\\carlos\\hc_enterprise_server")
+	gen.CreateApiRouter("/media/ysgk/DATA/carlos/hc_enterprise_server")
 }
