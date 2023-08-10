@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+
 	"github.com/carlos-yuan/cargen/cmd/gen"
 )
 
@@ -23,7 +24,6 @@ func main() {
 	flag.Parse()
 	if conf.Path == "" {
 		panic("项目目录不能为空")
-		return
 	}
 	conf.Build()
 }
