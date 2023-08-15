@@ -1,10 +1,11 @@
 package config
 
 import (
-	redisd "comm/redis"
 	"fmt"
-	"go.uber.org/dig"
 	"strconv"
+
+	redisd "github.com/carlos-yuan/cargen/util/redis"
+	"go.uber.org/dig"
 )
 
 var Container *dig.Container

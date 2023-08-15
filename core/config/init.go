@@ -1,11 +1,12 @@
 package config
 
 import (
-	"comm/aes"
-	fileUtl "comm/file"
 	"errors"
 	"os"
 	"strings"
+
+	"github.com/carlos-yuan/cargen/util/aes"
+	fileUtl "github.com/carlos-yuan/cargen/util/file"
 
 	"github.com/spf13/cobra"
 	"go.uber.org/dig"

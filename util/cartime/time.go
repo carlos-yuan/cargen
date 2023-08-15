@@ -1,9 +1,10 @@
 package cartime
 
 import (
-	"comm/convert"
 	"strconv"
 	"time"
+
+	"github.com/carlos-yuan/cargen/util/convert"
 )
 
 const timeFormat = "20060102150405.000Z07:00"

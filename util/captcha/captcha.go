@@ -1,14 +1,15 @@
 package captcha
 
 import (
-	"comm/aes"
-	"comm/md5"
-	rd "comm/random"
-	"comm/timeUtil"
 	"errors"
 	"image/color"
 	"strconv"
 	"strings"
+
+	"github.com/carlos-yuan/cargen/util/aes"
+	"github.com/carlos-yuan/cargen/util/md5"
+	rd "github.com/carlos-yuan/cargen/util/random"
+	"github.com/carlos-yuan/cargen/util/timeUtil"
 
 	"github.com/coocood/freecache"
 

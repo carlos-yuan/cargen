@@ -42,16 +42,37 @@ func CreateApiRouter(genPath string) {
 							}
 						}
 					}
-					apiWriter.WriteString(fmt.Sprintf("\n\t\t\tregister{method: \"%s\", path: prefix + \"%s\", handles: []gin.HandlerFunc{func(ctx *gin.Context) {"+
-						"\n\t\t\t\tt := t.SetContext(ctx)"+
-						"%s"+ //鉴权
-						"\n\t\t\t\tctx.JSON(200, t.%s())"+
-						"\n\t\t\t}}},",
-						strings.ToUpper(api.HttpMethod),
-						urlPath,
-						checkToken,
-						api.Name,
-					))
+					isByteArray := false
+					for _, f := range api.Response.Fields {
+						if f.Name == "Data" && f.Type == "byte" && f.Array {
+							isByteArray = true
+						}
+					}
+					if !isByteArray {
+						apiWriter.WriteString(fmt.Sprintf("\n\t\t\tregister{method: \"%s\", path: prefix + \"%s\", handles: []gin.HandlerFunc{func(ctx *gin.Context) {"+
+							"\n\t\t\t\tt := t.SetContext(ctx)"+
+							"%s"+ //鉴权
+							"\n\t\t\t\tctx.JSON(200, t.%s())"+
+							"\n\t\t\t}}},",
+							strings.ToUpper(api.HttpMethod),
+							urlPath,
+							checkToken,
+							api.Name,
+						))
+					} else {
+						apiWriter.WriteString(fmt.Sprintf("\n\t\t\tregister{method: \"%s\", path: prefix + \"%s\", handles: []gin.HandlerFunc{func(ctx *gin.Context) {"+
+							"\n\t\t\t\tt := t.SetContext(ctx)"+
+							"%s"+ //鉴权
+							"\n\t\t\t\tres := t.%s()"+ //鉴权
+							"\n\t\t\t\tctx.Writer.WriteHeader(res.Code)"+
+							"\n\t\t\t\tctx.Writer.Write(res.Data.([]byte))"+
+							"\n\t\t\t}}},",
+							strings.ToUpper(api.HttpMethod),
+							urlPath,
+							checkToken,
+							api.Name,
+						))
+					}
 				}
 				routers[path] = fmt.Sprintf(apiRouterTemplate, "\t"+importInfo, pkg.Name+"."+s.Name, apiWriter.String())
 			}

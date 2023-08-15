@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"log"
 	"runtime/debug"
 	"strings"
 
-	"github.com/bytedance/gopkg/util/logger"
 	"gorm.io/gorm"
 )
 
@@ -85,10 +85,10 @@ func printError(siteBuffer *bytes.Buffer, err error) {
 		if me.Err != nil {
 			printError(siteBuffer, me.Err)
 		} else {
-			logger.Error(siteBuffer.String() + ":  " + me.Msg)
+			log.Println(siteBuffer.String() + ":  " + me.Msg)
 		}
 	} else {
-		logger.Error(siteBuffer.String() + ":  " + err.Error())
+		log.Println(siteBuffer.String() + ":  " + err.Error())
 	}
 }
 

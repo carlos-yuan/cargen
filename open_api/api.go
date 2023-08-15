@@ -75,7 +75,8 @@ func (a *Api) NewStruct() *Struct {
 	return &s
 }
 
-func (a *Api) SetResponseData(s *Struct) {
+// SetResponseDataStruct 返回为结构体时
+func (a *Api) SetResponseDataStruct(array bool, s *Struct) {
 	for i, field := range a.Response.Fields {
 		if field.Name == "Data" {
 			a.sct.pkg.pkgs.FindInMethodMapParams(s)
@@ -90,8 +91,20 @@ func (a *Api) SetResponseData(s *Struct) {
 				} else {
 					a.Response.Fields[i].Struct = s
 					a.Response.Fields[i].Type = s.Name
+					a.Response.Fields[i].Array = array
 				}
 			}
+			return
+		}
+	}
+}
+
+// SetResponseDataType 设置返回为基础类型时
+func (a *Api) SetResponseDataType(array bool, typ string) {
+	for i, field := range a.Response.Fields {
+		if field.Name == "Data" {
+			a.Response.Fields[i].Array = array
+			a.Response.Fields[i].Type = typ
 			return
 		}
 	}
@@ -341,9 +354,41 @@ func (a *Api) GetResponseStruct(expr ast.Expr) {
 			if decl, ok := exp.Obj.Decl.(*ast.AssignStmt); ok {
 				index := FindRspIndex(exp.Name, decl.Lhs)
 				s.MethodMap = &MethodMap{Idx: index, Paths: a.FindRspMethodMap(decl.Rhs)}
+				a.SetResponseDataStruct(false, s)
+			} else if vs, ok := exp.Obj.Decl.(*ast.ValueSpec); ok {
+				if idt, ok := vs.Type.(*ast.Ident); ok {
+					if baseTypes.CheckIn(idt.Name) { //基础类型
+						a.SetResponseDataType(false, idt.Name)
+					} else { //结构体
+						if idt.Obj != nil {
+							if ts, ok := idt.Obj.Decl.(*ast.TypeSpec); ok {
+								if st, ok := ts.Type.(*ast.StructType); ok {
+									s.GetStructFromAstStructType(st)
+									s.Name = idt.Name
+									a.SetResponseDataStruct(false, s)
+								}
+							}
+						}
+					}
+				} else if at, ok := vs.Type.(*ast.ArrayType); ok {
+					if idt, ok := at.Elt.(*ast.Ident); ok {
+						if baseTypes.CheckIn(idt.Name) { //基础类型
+							a.SetResponseDataType(true, idt.Name)
+						} else { //结构体
+							if idt.Obj != nil {
+								if ts, ok := idt.Obj.Decl.(*ast.TypeSpec); ok {
+									if st, ok := ts.Type.(*ast.StructType); ok {
+										s.GetStructFromAstStructType(st)
+										s.Name = idt.Name
+										a.SetResponseDataStruct(true, s)
+									}
+								}
+							}
+						}
+					}
+				}
 			}
 		}
-		a.SetResponseData(s)
 	case *ast.SelectorExpr: // t.Success(rsp.List)
 		s := a.NewStruct()
 		id := exp.X.(*ast.Ident)
@@ -355,13 +400,13 @@ func (a *Api) GetResponseStruct(expr ast.Expr) {
 			}
 		}
 		s.Field = exp.Sel.Name
-		a.SetResponseData(s)
+		a.SetResponseDataStruct(false, s)
 	default:
 
 	}
 	if a.GetResponseData() == nil || a.GetResponseData().MethodMap == nil {
 		s := a.getParameterStruct(expr)
-		a.SetResponseData(s)
+		a.SetResponseDataStruct(false, s)
 	}
 }
 
@@ -658,16 +703,16 @@ func (a *Api) FillResponse(method *Method) {
 				name := ""
 				data := a.GetResponseData()
 				if data != nil {
-					if baseTypes.CheckIn(data.Name) {
-						name = a.Group + "." + a.Name + "Rsp"
-					} else {
+					if !baseTypes.CheckIn(data.Name) {
 						name = data.Name
 					}
-				} else {
-					name = a.Name
+				}
+				if name == "" {
+					name = a.Group + "." + a.Name + "Rsp"
 				}
 				schemaName += name
 				method.api.Components.Schemas[name] = pp
+
 				p := Property{Ref: schemaName}
 				method.Responses["200"] = Response{Description: a.Response.Name, Content: map[string]Content{"application/json": {Schema: p}}}
 			}

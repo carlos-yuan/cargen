@@ -2,14 +2,15 @@ package openapi
 
 import (
 	"encoding/json"
-	"github.com/carlos-yuan/cargen/util"
-	"golang.org/x/mod/modfile"
 	"io/fs"
 	"log"
 	"os"
 	"sort"
 	"strings"
 	"syscall"
+
+	"github.com/carlos-yuan/cargen/util"
+	"golang.org/x/mod/modfile"
 )
 
 // GenFromPath 通过目录生成

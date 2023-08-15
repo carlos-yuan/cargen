@@ -1,12 +1,11 @@
 package ctl
 
 import (
-	"comm/controller/token"
-	cp "comm/copy"
-	e "comm/error"
 	"context"
 	"errors"
 
+	"github.com/carlos-yuan/cargen/core/controller/token"
+	e "github.com/carlos-yuan/cargen/core/error"
 	"github.com/jinzhu/copier"
 )
 
@@ -87,7 +86,7 @@ func (r *Result) Err(err error, msg ...string) *Result {
 }
 
 func Copy[T any](to T, from any) T {
-	err := copier.CopyWithOption(to, from, cp.StringTimeToIntTime)
+	err := copier.Copy(to, from)
 	if err != nil {
 		panic(e.ParamsDealError.SetErr(err, "参数转换失败"))
 	}

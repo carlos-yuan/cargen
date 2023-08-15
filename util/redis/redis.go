@@ -1,16 +1,17 @@
 package redisd
 
 import (
-	"comm/convert"
-	"comm/lock"
-	"comm/timeUtil"
 	"errors"
-	"github.com/coocood/freecache"
-	"github.com/opentracing/opentracing-go/log"
 	"reflect"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/carlos-yuan/cargen/util/convert"
+	"github.com/carlos-yuan/cargen/util/lock"
+	"github.com/carlos-yuan/cargen/util/timeUtil"
+	"github.com/coocood/freecache"
+	"github.com/opentracing/opentracing-go/log"
 
 	"github.com/go-redis/redis"
 	"github.com/vmihailenco/msgpack"

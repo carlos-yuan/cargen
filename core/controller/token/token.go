@@ -1,12 +1,13 @@
 package token
 
 import (
-	e "comm/error"
 	"context"
 	"encoding/json"
 	"errors"
 	"log"
 	"strings"
+
+	e "github.com/carlos-yuan/cargen/core/error"
 )
 
 var (

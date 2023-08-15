@@ -1,13 +1,14 @@
 package rd
 
 import (
-	"comm/timeUtil"
 	"crypto/rand"
-	uuid "github.com/satori/go.uuid"
 	"math/big"
 	mrand "math/rand"
 	"strconv"
 	"time"
+
+	"github.com/carlos-yuan/cargen/util/timeUtil"
+	uuid "github.com/satori/go.uuid"
 )
 
 func GetUUID() string {

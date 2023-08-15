@@ -1,9 +1,10 @@
 package openapi
 
 import (
-	"github.com/carlos-yuan/cargen/util"
 	"reflect"
 	"strings"
+
+	"github.com/carlos-yuan/cargen/util"
 )
 
 type Field struct {

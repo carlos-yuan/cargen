@@ -1,11 +1,12 @@
 package gormutl
 
 import (
-	"comm/cartime"
+	"reflect"
+
+	"github.com/carlos-yuan/cargen/util/cartime"
 	"gorm.io/gorm"
 	"gorm.io/gorm/callbacks"
 	"gorm.io/gorm/clause"
-	"reflect"
 )
 
 func RegisterCallbacks(db *gorm.DB) error {

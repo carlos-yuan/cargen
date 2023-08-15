@@ -1,13 +1,15 @@
 package main
 
 import (
-	"comm/aes"
-	"comm/config"
-	fileUtl "comm/file"
 	"os"
 
-	"gopkg.in/yaml.v3"
+	"github.com/carlos-yuan/cargen/core/config"
+	"github.com/carlos-yuan/cargen/util/aes"
+	fileUtl "github.com/carlos-yuan/cargen/util/file"
+
 	"log"
+
+	"gopkg.in/yaml.v3"
 )
 
 func main() {

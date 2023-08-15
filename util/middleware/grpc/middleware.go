@@ -1,17 +1,18 @@
 package middleware
 
 import (
-	"comm/controller/token"
-	e "comm/error"
 	"context"
 	"errors"
+	"strings"
+
 	"github.com/bytedance/gopkg/cloud/metainfo"
+	"github.com/carlos-yuan/cargen/core/controller/token"
+	e "github.com/carlos-yuan/cargen/core/error"
 	"github.com/cloudwego/kitex/client"
 	"github.com/cloudwego/kitex/pkg/endpoint"
 	"github.com/cloudwego/kitex/pkg/remote"
 	"github.com/cloudwego/kitex/pkg/rpcinfo"
 	"github.com/cloudwego/kitex/server"
-	"strings"
 )
 
 func WhiteIpMiddleware(whiteList map[string][]string) server.Option {

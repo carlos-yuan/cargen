@@ -1,18 +1,19 @@
 package ctl
 
 import (
-	"comm/config"
-	"comm/controller/token"
-	e "comm/error"
-	"comm/timeUtil"
 	"context"
 	"errors"
-	"github.com/gin-gonic/gin"
-	"github.com/gin-gonic/gin/binding"
-	"github.com/go-playground/validator/v10"
 	"reflect"
 	"strings"
 	"sync"
+
+	"github.com/carlos-yuan/cargen/core/config"
+	"github.com/carlos-yuan/cargen/core/controller/token"
+	e "github.com/carlos-yuan/cargen/core/error"
+	"github.com/carlos-yuan/cargen/util/timeUtil"
+	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
+	"github.com/go-playground/validator/v10"
 )
 
 var (

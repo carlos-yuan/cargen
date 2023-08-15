@@ -1,7 +1,7 @@
 package gin
 
 import (
-	e "comm/error"
+	e "github.com/carlos-yuan/cargen/core/error"
 	"github.com/gin-gonic/gin"
 )
 
