@@ -1,15 +1,17 @@
 package middleware
 
 import (
+	"comm/controller/token"
+	e "comm/error"
 	"context"
+	"encoding/json"
 	"errors"
 	"strings"
 
 	"github.com/bytedance/gopkg/cloud/metainfo"
-	"github.com/carlos-yuan/cargen/core/controller/token"
-	e "github.com/carlos-yuan/cargen/core/error"
 	"github.com/cloudwego/kitex/client"
 	"github.com/cloudwego/kitex/pkg/endpoint"
+	"github.com/cloudwego/kitex/pkg/kerrors"
 	"github.com/cloudwego/kitex/pkg/remote"
 	"github.com/cloudwego/kitex/pkg/rpcinfo"
 	"github.com/cloudwego/kitex/server"
@@ -40,13 +42,38 @@ func WhiteIpMiddleware(whiteList map[string][]string) server.Option {
 	})
 }
 
-// ErrHandlerOption 业务错误再封装
-var ErrHandlerOption = client.WithErrorHandler(func(ctx context.Context, err error) error {
+// ErrClientHandlerOption 业务错误再封装
+var ErrClientHandlerOption = client.WithErrorHandler(func(ctx context.Context, err error) error {
 	transErr, ok := err.(*remote.TransError)
 	if ok && transErr.TypeID() == 6 {
+		errStr := strings.ReplaceAll(transErr.Error(), "biz error: ", "")
+		var errInfo e.Err
+		err = json.Unmarshal([]byte(errStr), &errInfo)
+		if err == nil {
+			return errInfo
+		}
 		err = e.RPCClientErrorCodeError.SetErr(err, strings.ReplaceAll(transErr.Error(), "biz error: ", ""))
 	} else {
 		err = e.RPCClientErrorCodeError.SetErr(err, "数据访问失败")
+	}
+	return err
+})
+
+var ErrServerHandlerOption = server.WithErrorHandler(func(ctx context.Context, err error) error {
+	transErr, ok := err.(*kerrors.DetailedError)
+	if ok {
+		var errInfo e.Err
+		if transErr.As(&errInfo) {
+			var b []byte
+			b, err = json.Marshal(errInfo)
+			if err != nil {
+				err = e.RPCServerErrorCodeError.SetErr(err, "错误转换失败")
+			} else {
+				err = e.RPCServerErrorCodeError.SetErr(err, string(b))
+			}
+		}
+	} else {
+		err = e.RPCServerErrorCodeError.SetErr(err, "数据访问失败")
 	}
 	return err
 })

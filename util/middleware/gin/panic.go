@@ -1,7 +1,8 @@
 package gin
 
 import (
-	e "github.com/carlos-yuan/cargen/core/error"
+	e "comm/error"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -22,7 +23,7 @@ func Panic() gin.HandlerFunc {
 						return
 					}
 				}
-				c.JSON(500, e.InternalServerError.SetRecover(err))
+				c.JSON(500, e.InternalServerError.SetRecover(rec))
 			}
 		}()
 		c.Next()

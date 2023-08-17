@@ -47,14 +47,14 @@ func ToDayTime(t time.Time) time.Time {
 func ParseTime(val string, format ...string) (time.Time, error) {
 	if len(format) == 0 {
 		if len(val) == 19 {
-			format[0] = FormatNormal
+			format = append(format, FormatNormal)
 		} else if len(val) == 10 {
-			format[0] = FormatNormalDate
+			format = append(format, FormatNormalDate)
 		} else {
 			return time.Time{}, errors.New("format not nil")
 		}
 	}
-	return time.Parse(format[0], val)
+	return time.ParseInLocation(format[0], val, time.Local)
 }
 
 func FormatTime(t time.Time, format string) string {
@@ -189,8 +189,7 @@ func ToTimeStamp(t string, dateStyle string) int64 {
 	dateStyle = strings.Replace(dateStyle, "mm", "04", 1)
 	dateStyle = strings.Replace(dateStyle, "ss", "05", 1)
 	dateStyle = strings.Replace(dateStyle, "SSS", "000", -1)
-	location, _ := time.LoadLocation("Asia/Shanghai")
-	date, err := time.ParseInLocation(dateStyle, t, location)
+	date, err := time.ParseInLocation(dateStyle, t, time.Local)
 	if err != nil {
 		println(err.Error())
 	}
