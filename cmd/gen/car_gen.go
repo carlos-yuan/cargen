@@ -209,7 +209,7 @@ func (g *Generator) generateServiceMethodDoAndTx(serviceName string, field *ast.
 							for _, queryField := range queryFields {
 								txStr.WriteString(fmt.Sprintf("\tdo.%s.ReplaceDB(tx)\n", queryField))
 							}
-							txStr.WriteString("\tdefer query.RollBackFn(tx,s.Err,&err)\n")
+							txStr.WriteString("\tdefer query.RollBackFn(tx,s.Error,&err)\n")
 						}
 					}
 				}
