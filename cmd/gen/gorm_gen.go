@@ -2,11 +2,12 @@ package gen
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/carlos-yuan/cargen/util"
 	"gorm.io/driver/mysql"
 	"gorm.io/gen"
 	"gorm.io/gorm"
-	"os"
 )
 
 func GormGen(path, dsn, name string, tables []string) {
@@ -101,13 +102,13 @@ type %sDao struct {
 	I%sDo
 }
 
-func (q *Query) Get%sDao(ctx context.Context) *%sDao {
-	return &%sDao{q.%s.WithContext(ctx)}
+func (q *Query) Get%sDao(ctx context.Context) %sDao {
+	return %sDao{q.%s.WithContext(ctx)}
 }
 
-func (q *Query) Get%sDaoWithTx(ctx context.Context, tx *gorm.DB) *%sDao {
+func (q *Query) Get%sDaoWithTx(ctx context.Context, tx *gorm.DB) %sDao {
 	dao := %sDao{q.%s.WithContext(ctx)}
 	dao.I%sDo.ReplaceDB(tx)
-	return &dao
+	return dao
 }
 `

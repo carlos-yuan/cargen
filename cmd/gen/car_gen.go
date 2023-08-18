@@ -139,11 +139,7 @@ func (g *Generator) generateServiceFile(intfs []*ast.TypeSpec) {
 
 // 生成服务的头部
 func (g *Generator) generateServiceHeader() string {
-	var tx string
-	if g.hasQuery {
-		tx = "\t\"orm/" + g.DbName + "/query\"\n"
-	}
-	structStr := fmt.Sprintf("import (\n\t\"context\"\n\t\"%s\"\n%s)\n\n", g.Model+"/rpc/kitex_gen/"+g.PkgName, tx)
+	structStr := fmt.Sprintf("import (\n\t\"context\"\n\t\"%s\"\n)\n\n", g.Model+"/rpc/kitex_gen/"+g.PkgName)
 	return structStr
 }
 
@@ -183,7 +179,15 @@ func (g *Generator) generateServiceMethodDoAndTx(serviceName string, field *ast.
 		if sm.Name == field.Names[0].Name {
 			//组装字段
 			fields := sm.Decl.Specs[0].(*ast.TypeSpec).Type.(*ast.StructType).Fields.List
-			var queryFields []string
+			isTx := false
+			//组装数据库事务
+			for _, method := range sm.Methods {
+				if method.Name == "Do" && strings.Contains(method.Doc, "@TX") {
+					isTx = true
+					fieldStr.WriteString("\ttx := s.Db().Begin()\n")
+					break
+				}
+			}
 			for _, fd := range fields {
 				switch fd.Type.(type) {
 				case *ast.StarExpr:
@@ -195,24 +199,17 @@ func (g *Generator) generateServiceMethodDoAndTx(serviceName string, field *ast.
 					expr := fd.Type.(*ast.SelectorExpr)
 					if expr.X.(*ast.Ident).Name == "query" {
 						g.hasQuery = true
-						queryFields = append(queryFields, expr.Sel.Name)
-						fieldStr.WriteString(fmt.Sprintf("\t\t%s:query.%s{I%sDo:s.Query.%s.WithContext(ctx)},\n", expr.Sel.Name, expr.Sel.Name, expr.Sel.Name[:len(expr.Sel.Name)-3], expr.Sel.Name[:len(expr.Sel.Name)-3]))
+						if isTx {
+							fieldStr.WriteString(fmt.Sprintf("\t\t%s: s.Get%sWithTx(ctx,tx),\n", expr.Sel.Name, expr.Sel.Name))
+						} else {
+							fieldStr.WriteString(fmt.Sprintf("\t\t%s: s.Get%s(ctx),\n", expr.Sel.Name, expr.Sel.Name))
+						}
 					}
 				}
 			}
 			//组装数据库事务
-			if len(queryFields) > 0 {
-				for _, method := range sm.Methods {
-					if method.Name == "Do" {
-						if strings.Contains(method.Doc, "@TX") {
-							txStr.WriteString("\ttx := s.Db().Begin()\n")
-							for _, queryField := range queryFields {
-								txStr.WriteString(fmt.Sprintf("\tdo.%s.ReplaceDB(tx)\n", queryField))
-							}
-							txStr.WriteString("\tdefer query.RollBackFn(tx,s.Error,&err)\n")
-						}
-					}
-				}
+			if isTx {
+				txStr.WriteString("\tdefer query.RollBackFn(tx,s.Error,&err)\n")
 			}
 			break
 		}

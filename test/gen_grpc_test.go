@@ -1,10 +1,12 @@
 package test
 
 import (
-	"github.com/carlos-yuan/cargen/cmd/gen"
 	"testing"
+
+	"github.com/carlos-yuan/cargen/cmd/gen"
 )
 
 func TestGenGRPC(t *testing.T) {
-	gen.KitexGen("user", "D:\\carlos\\hc_enterprise_server")
+	conf := gen.Config{Gen: gen.GenGrpc, Path: "/media/ysgk/DATA/carlos/cargen_demo", DbName: "shop", Name: "user"}
+	conf.Build()
 }
