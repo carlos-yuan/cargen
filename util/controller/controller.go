@@ -1,11 +1,10 @@
 package ctl
 
 import (
-	"comm/controller/token"
-	cp "comm/copy"
-	e "comm/error"
 	"context"
 	"errors"
+
+	e "github.com/carlos-yuan/cargen/util/error"
 
 	"github.com/jinzhu/copier"
 )
@@ -13,9 +12,9 @@ import (
 // ControllerContext 请求体接口
 type ControllerContext interface {
 	// CheckToken 检查token是否有效 该方法出错会panic 并被panic handler拦截
-	CheckToken()
+	CheckToken(Token)
 	// GetToken 获取token包含的内容
-	GetToken() *token.Payload
+	GetToken() Payload
 	// GetHeader 获取header
 	GetHeader(key string) string
 	// SetHeader 设置header
@@ -88,10 +87,19 @@ func (r *Result) Err(err error, msg ...string) *Result {
 	return r
 }
 
-func Copy[T any](to T, from any) T {
-	err := copier.CopyWithOption(to, from, cp.StringTimeToIntTime)
-	if err != nil {
-		panic(e.ParamsDealError.SetErr(err, "参数转换失败"))
+func Copy[T any](to T, from any, opts ...copier.Option) T {
+	if len(opts) > 0 {
+		err := copier.CopyWithOption(to, from, opts[0])
+		if err != nil {
+			panic(e.ParamsDealError.SetErr(err, "参数转换失败"))
+		}
+	} else if len(opts) == 0 {
+		err := copier.Copy(to, from)
+		if err != nil {
+			panic(e.ParamsDealError.SetErr(err, "参数转换失败"))
+		}
+	} else {
+		panic(e.ParamsDealError.SetErr(nil, "拷贝选项有误"))
 	}
 	return to
 }

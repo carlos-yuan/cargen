@@ -3,7 +3,7 @@ package log
 import (
 	"bytes"
 
-	e "github.com/carlos-yuan/cargen/core/error"
+	e "github.com/carlos-yuan/cargen/util/error"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )

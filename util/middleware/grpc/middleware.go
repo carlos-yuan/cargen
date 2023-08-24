@@ -1,12 +1,12 @@
-package middleware
+package grpcmid
 
 import (
-	"comm/controller/token"
-	e "comm/error"
 	"context"
 	"encoding/json"
 	"errors"
 	"strings"
+
+	e "github.com/carlos-yuan/cargen/util/error"
 
 	"github.com/bytedance/gopkg/cloud/metainfo"
 	"github.com/cloudwego/kitex/client"
@@ -82,19 +82,37 @@ var ClientMetaHandler = client.WithMetaHandler(&MetaTTHeaderHandler{})
 
 var ServerMetaHandler = server.WithMetaHandler(&MetaTTHeaderHandler{})
 
+type GrpcTokenGet interface {
+	GetGrpcToken() string
+}
+
+type GrpcToken struct {
+	GrpcToken string `json:"grpcToken"`
+}
+
+func (gt GrpcToken) GetGrpcToken() string {
+	return gt.GrpcToken
+}
+
+var GrpcTokenKey struct{}
+
 type MetaTTHeaderHandler struct {
 	WhiteApi   []string //接口白名单
 	CheckWhite bool
 }
 
+var GrpcTokenStringKey = "grpcTokenString"
+
 func (ch *MetaTTHeaderHandler) WriteMeta(ctx context.Context, msg remote.Message) (context.Context, error) {
-	tk := ctx.Value(token.GrpcTokenStringKey)
+	tk := ctx.Value(GrpcTokenStringKey)
 	hd := make(map[string]string)
 	if metainfo.HasMetaInfo(ctx) {
 		metainfo.SaveMetaInfoToMap(ctx, hd)
 	}
 	if tk != nil {
-		hd[token.GrpcTokenStringKey] = tk.(*token.Payload).GrpcToken
+		if gt, ok := tk.(GrpcTokenGet); ok {
+			hd[GrpcTokenStringKey] = gt.GetGrpcToken()
+		}
 	}
 	msg.TransInfo().PutTransStrInfo(hd)
 	return ctx, nil
@@ -102,7 +120,7 @@ func (ch *MetaTTHeaderHandler) WriteMeta(ctx context.Context, msg remote.Message
 
 // ReadMeta of MetaTTHeaderHandler reads headers of TTHeader protocol from transport
 func (ch *MetaTTHeaderHandler) ReadMeta(ctx context.Context, msg remote.Message) (context.Context, error) {
-	tk := msg.TransInfo().TransStrInfo()[token.GrpcTokenStringKey]
+	tk := msg.TransInfo().TransStrInfo()[GrpcTokenStringKey]
 	// 接口白名单验证
 	if ch.CheckWhite {
 		method := msg.RPCInfo().Invocation().MethodName()
@@ -113,5 +131,5 @@ func (ch *MetaTTHeaderHandler) ReadMeta(ctx context.Context, msg remote.Message)
 		}
 
 	}
-	return context.WithValue(ctx, token.GrpcTokenKey, tk), nil
+	return context.WithValue(ctx, GrpcTokenKey, tk), nil
 }

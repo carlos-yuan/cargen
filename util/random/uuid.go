@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/carlos-yuan/cargen/util/timeUtil"
+
 	uuid "github.com/satori/go.uuid"
 )
 

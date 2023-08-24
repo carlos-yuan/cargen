@@ -22,7 +22,7 @@ func CarGen(name, dbName, grpcPath, grpcPkgName, distPath, distPkg string) {
 	err := (&Generator{Model: name, DbName: dbName, PkgPath: grpcPath, PkgName: grpcPkgName, DistPath: distPath, DistPkg: distPkg,
 		ServiceFields: []ServiceField{
 			{Field: "*query.Query", Import: `"/orm/` + dbName + `/query"`},
-			{Field: "cache *redisd.Decorator", Import: `redisd "comm/redis"`},
+			{Field: "cache *redisd.Decorator", Import: `redisd "github.com/carlos-yuan/cargen/util/redis"`},
 			{Field: "conf  *config.Config", Import: `"` + name + `/config"`},
 		},
 	}).Run()
