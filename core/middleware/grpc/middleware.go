@@ -6,7 +6,7 @@ import (
 	"errors"
 	"strings"
 
-	e "github.com/carlos-yuan/cargen/util/error"
+	e "github.com/carlos-yuan/cargen/core/error"
 
 	"github.com/bytedance/gopkg/cloud/metainfo"
 	"github.com/cloudwego/kitex/client"

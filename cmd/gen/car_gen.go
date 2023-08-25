@@ -15,7 +15,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/carlos-yuan/cargen/util"
+	"github.com/carlos-yuan/cargen/util/convert"
+	"github.com/carlos-yuan/cargen/util/fileUtil"
 )
 
 func CarGen(name, dbName, grpcPath, grpcPkgName, distPath, distPkg string) {
@@ -130,7 +131,7 @@ func (g *Generator) generateServiceFile(intfs []*ast.TypeSpec) {
 		info.Buffer.WriteString(header)
 		info.Buffer.WriteString(define)
 		info.Buffer.WriteString(method)
-		err := util.WriteByteFile(g.DistPath+util.ToSnakeCase(info.Name)+".gen.go", info.Buffer.Bytes())
+		err := fileUtil.WriteByteFile(g.DistPath+convert.ToSnakeCase(info.Name)+".gen.go", info.Buffer.Bytes())
 		if err != nil {
 			panic(err)
 		}
@@ -243,8 +244,8 @@ func (g *Generator) generateMethodFile(intfs []*ast.TypeSpec) {
 				info.Buffer.WriteString(g.generateMethodFileStructMethod(m))
 				infos = append(infos, info)
 			} else {
-				file := g.DistPath + util.ToSnakeCase(m.Names[0].Name) + ".go"
-				oldCode, err := util.ReadAll(g.DistPath + util.ToSnakeCase(m.Names[0].Name) + ".go")
+				file := g.DistPath + convert.ToSnakeCase(m.Names[0].Name) + ".go"
+				oldCode, err := fileUtil.ReadAll(g.DistPath + convert.ToSnakeCase(m.Names[0].Name) + ".go")
 				if err != nil {
 					panic(err)
 				}
@@ -279,7 +280,7 @@ func (g *Generator) generateMethodFile(intfs []*ast.TypeSpec) {
 					}
 				}
 				if len(newCode) > 0 && string(oldCode) != string(newCode) {
-					err = util.WriteByteFile(file, newCode)
+					err = fileUtil.WriteByteFile(file, newCode)
 					if err != nil {
 						panic(err)
 					}
@@ -288,7 +289,7 @@ func (g *Generator) generateMethodFile(intfs []*ast.TypeSpec) {
 		}
 	}
 	for _, mf := range infos {
-		err := util.WriteByteFile(g.DistPath+util.ToSnakeCase(mf.Name)+".go", mf.Buffer.Bytes())
+		err := fileUtil.WriteByteFile(g.DistPath+convert.ToSnakeCase(mf.Name)+".go", mf.Buffer.Bytes())
 		if err != nil {
 			panic(err)
 		}

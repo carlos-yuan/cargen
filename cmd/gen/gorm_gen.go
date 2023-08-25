@@ -4,15 +4,16 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/carlos-yuan/cargen/util"
+	"github.com/carlos-yuan/cargen/util/convert"
+	"github.com/carlos-yuan/cargen/util/fileUtil"
 	"gorm.io/driver/mysql"
 	"gorm.io/gen"
 	"gorm.io/gorm"
 )
 
 func GormGen(path, dsn, name string, tables []string) {
-	outPath := util.FixPathSeparator(path + "/orm/" + name + "/query")
-	modelPkgPath := util.FixPathSeparator(path + "/orm/" + name + "/model")
+	outPath := fileUtil.FixPathSeparator(path + "/orm/" + name + "/query")
+	modelPkgPath := fileUtil.FixPathSeparator(path + "/orm/" + name + "/model")
 	g := gen.NewGenerator(gen.Config{
 		OutPath:       outPath,
 		Mode:          gen.WithoutContext | gen.WithDefaultQuery | gen.WithQueryInterface, // generate mode
@@ -20,7 +21,7 @@ func GormGen(path, dsn, name string, tables []string) {
 		ModelPkgPath:  modelPkgPath,
 	})
 	g.WithJSONTagNameStrategy(func(columnName string) (tagContent string) {
-		return util.ToCamelFirstLowerCase(columnName)
+		return convert.ToCamelFirstLowerCase(columnName)
 	})
 	gormdb, _ := gorm.Open(mysql.Open(dsn))
 	g.UseDB(gormdb) // reuse your gorm db
@@ -68,7 +69,7 @@ type TableInfo struct {
 func generateDaoFile(outPath string, tablesInf []TableInfo) {
 	for _, table := range tablesInf {
 		filePath := outPath + string(os.PathSeparator) + table.FileName + ".go"
-		if !util.IsExist(filePath) {
+		if !fileUtil.IsExist(filePath) {
 			code := fmt.Sprintf(databaseDaoTemplate,
 				table.ModelStructName,
 				table.ModelStructName,
@@ -82,7 +83,7 @@ func generateDaoFile(outPath string, tablesInf []TableInfo) {
 				table.ModelStructName,
 				table.ModelStructName,
 			)
-			err := util.WriteByteFile(filePath, []byte(code))
+			err := fileUtil.WriteByteFile(filePath, []byte(code))
 			if err != nil {
 				panic(err)
 			}

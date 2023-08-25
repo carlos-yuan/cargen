@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/carlos-yuan/cargen/util"
+	"github.com/carlos-yuan/cargen/util/convert"
 )
 
 type Field struct {
@@ -93,7 +94,7 @@ func (bt BaseType) CheckIn(typ string) bool {
 // ToProperty 找到属性
 // deep 递归层数 max递归深度
 func (f Field) ToProperty(storey, deep int) []Property {
-	if f.Name != "" && util.FistIsLower(f.Name) { //小写开头的隐藏字段去掉
+	if f.Name != "" && convert.FistIsLower(f.Name) { //小写开头的隐藏字段去掉
 		return []Property{}
 	}
 	if storey > deep { //深度限制

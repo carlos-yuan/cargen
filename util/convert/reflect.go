@@ -6,7 +6,11 @@ import (
 )
 
 func GetStructModAndName(s any) (mod, name string) {
-	typ := reflect.TypeOf(s).Elem()
+	typ := reflect.TypeOf(s)
+	if typ.Kind() == reflect.Ptr {
+		typ = typ.Elem()
+	}
+	println(typ.PkgPath())
 	mod = typ.PkgPath()[:strings.Index(typ.PkgPath(), "/")]
 	return mod, typ.Name()
 }

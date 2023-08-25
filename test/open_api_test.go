@@ -4,11 +4,11 @@ import (
 	"testing"
 
 	openapi "github.com/carlos-yuan/cargen/open_api"
-	"github.com/carlos-yuan/cargen/util"
+	"github.com/carlos-yuan/cargen/util/fileUtil"
 )
 
 func TestOpenApi(t *testing.T) {
-	path, err := util.ProjectPath()
+	path, err := fileUtil.ProjectPath()
 	if err != nil {
 		t.Error(err)
 	}

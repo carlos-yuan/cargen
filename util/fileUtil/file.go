@@ -1,4 +1,4 @@
-package fileUtl
+package fileUtil
 
 import (
 	"errors"
@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 )
@@ -277,6 +278,47 @@ func GetFilePath(filepath string, fileName string) ([]string, error) {
 		}
 		if info.Name() == fileName {
 			paths = append(paths, path)
+		}
+	}
+	return paths, nil
+}
+
+func FixPathSeparator(path string) string {
+	if string(os.PathSeparator) == "\\" {
+		return strings.ReplaceAll(path, "/", string(os.PathSeparator))
+	} else {
+		return strings.ReplaceAll(path, "\\", string(os.PathSeparator))
+	}
+}
+
+func ProjectPath() (string, error) {
+	_, filename, _, ok := runtime.Caller(0)
+	if !ok {
+		return "", errors.New("not find code file path")
+	}
+	base, err := CutPathLast(filename, 2)
+	if err != nil {
+		return "", err
+	}
+	return base, nil
+}
+
+func GetAllPath(path string) ([]string, error) {
+	infos, err := os.ReadDir(path)
+	if err != nil {
+		return nil, err
+	}
+	paths := make([]string, 0, len(infos))
+	for _, info := range infos {
+		path := path + string(os.PathSeparator) + info.Name()
+		if info.IsDir() {
+			tmp, err := GetAllPath(path)
+			if err != nil {
+				return nil, err
+			}
+			paths = append(paths, tmp...)
+			paths = append(paths, path)
+			continue
 		}
 	}
 	return paths, nil

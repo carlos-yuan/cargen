@@ -1,8 +1,9 @@
 package openapi
 
 import (
-	"github.com/carlos-yuan/cargen/util"
 	"go/ast"
+
+	"github.com/carlos-yuan/cargen/util/convert"
 )
 
 type Struct struct {
@@ -187,7 +188,7 @@ func (sct Struct) ToProperty() Property {
 		}
 	}
 	for _, field := range sct.Fields {
-		if field.Name != "" && util.FistIsLower(field.Name) { //小写开头的隐藏字段去掉
+		if field.Name != "" && convert.FistIsLower(field.Name) { //小写开头的隐藏字段去掉
 			continue
 		}
 		pps = append(pps, field.ToProperty(0, 5)...)

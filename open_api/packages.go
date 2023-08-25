@@ -10,6 +10,7 @@ import (
 	"syscall"
 
 	"github.com/carlos-yuan/cargen/util"
+	"github.com/carlos-yuan/cargen/util/fileUtil"
 	"golang.org/x/mod/modfile"
 )
 
@@ -22,7 +23,7 @@ func GenFromPath(name, des, version, path, out string) {
 	apis.Info.Description = des
 	apis.Info.Version = version
 	b, _ := json.Marshal(apis)
-	err := util.WriteByteFile(out, b)
+	err := fileUtil.WriteByteFile(out, b)
 	if err != nil {
 		panic(err)
 	}
@@ -39,18 +40,18 @@ func (pkgs *Packages) Init(base string) {
 }
 
 func (pkgs *Packages) InitPackages(base string) {
-	files, err := util.GetFilePath(base, "go.mod")
+	files, err := fileUtil.GetFilePath(base, "go.mod")
 	if err != nil {
 		panic(err)
 	}
 	for _, file := range files {
 		goModFilePathData, _ := os.ReadFile(file)
 		modFile, _ := modfile.Parse("go.mod", goModFilePathData, nil)
-		path, err := util.CutPathLast(file, 1)
+		path, err := fileUtil.CutPathLast(file, 1)
 		if err != nil {
 			continue
 		}
-		pathChild, err := util.GetAllPath(path)
+		pathChild, err := fileUtil.GetAllPath(path)
 		if err != nil {
 			continue
 		}

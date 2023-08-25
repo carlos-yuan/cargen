@@ -1,6 +1,8 @@
 package e
 
-import "strconv"
+import (
+	"strconv"
+)
 
 const (
 	ParamsValidatorErrorCode = 1000
@@ -15,11 +17,17 @@ const (
 
 	RPCClientErrorCode = 1005
 
-	AuthorizeTimeOutErrorCode = 1006
+	RPCServerErrorCode = 1006
+
+	AuthorizeTimeOutErrorCode = 1007
 
 	EdgeUserGrpcErrorCode = 2001
 
 	EdgePermitGrpcErrorCode = 2002
+
+	EdgeDictGrpcErrorCode = 2003
+
+	EdgeProductGrpcErrorCode = 2004
 )
 
 // 控制器处理出错 错误码
@@ -28,7 +36,7 @@ var (
 
 	ParamsDealError = Err{Code: ParamsDealErrorCode}
 
-	NotFindCodeError = Err{Code: NotFindErrorCode}
+	NotFindError = Err{Code: NotFindErrorCode}
 
 	AuthorizeError = Err{Code: AuthorizeErrorCode}
 
@@ -37,6 +45,8 @@ var (
 	InternalServerError = Err{Code: InternalServerErrorCode}
 
 	RPCClientErrorCodeError = Err{Code: RPCClientErrorCode}
+
+	RPCServerErrorCodeError = Err{Code: RPCServerErrorCode}
 )
 
 // 业务rpc对应错误码
@@ -44,6 +54,10 @@ var (
 	EdgeUserGrpcError = Err{Code: EdgeUserGrpcErrorCode}
 
 	EdgePermitGrpcError = Err{Code: EdgePermitGrpcErrorCode}
+
+	EdgeDictGrpcError = Err{Code: EdgeDictGrpcErrorCode}
+
+	EdgeProductGrpcError = Err{Code: EdgeProductGrpcErrorCode}
 )
 
 func (e Err) CodeName() string {
@@ -63,3 +77,7 @@ func (e Err) CodeName() string {
 	}
 	return "Unknown err:" + strconv.Itoa(e.Code)
 }
+
+var (
+	RecordNotFound = "record not found"
+)

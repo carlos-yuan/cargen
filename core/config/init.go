@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/carlos-yuan/cargen/util/aes"
-	fileUtl "github.com/carlos-yuan/cargen/util/file"
+	"github.com/carlos-yuan/cargen/util/fileUtil"
 
 	"github.com/spf13/cobra"
 	"go.uber.org/dig"
@@ -16,8 +16,7 @@ import (
 func init() {
 	var confPath string
 	var rootCmd = &cobra.Command{
-		Use:   "",
-		Short: "hc_entertprise_server",
+		Use: "",
 		Run: func(cmd *cobra.Command, args []string) {
 			confPath, _ = cmd.Flags().GetString("config")
 		},
@@ -55,8 +54,8 @@ const (
 
 func loading(path string) (bt []byte, err error) {
 	if path == "" { //未指定配置 二进制文件所在路径
-		path, _ = fileUtl.GetCurrentDirectory()
-		paths, err := fileUtl.GetFilePath(path, ConfigEncryptFileName)
+		path, _ = fileUtil.GetCurrentDirectory()
+		paths, err := fileUtil.GetFilePath(path, ConfigEncryptFileName)
 		if err != nil {
 			return nil, err
 		}

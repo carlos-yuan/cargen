@@ -103,3 +103,22 @@ func FistToLower(str string) string {
 	byt[0] = word
 	return string(byt)
 }
+
+func FistIsLower(str string) bool {
+	if len(str) == 0 {
+		return false
+	}
+	word := str[0]
+	return 'a' <= word && word <= 'z'
+}
+
+func LastName(path string) string {
+	idx := strings.LastIndex(path, `/`)
+	if idx == -1 {
+		idx = strings.LastIndex(path, `\`)
+		if idx == -1 {
+			return path
+		}
+	}
+	return path[idx+1:]
+}

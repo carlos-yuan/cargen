@@ -1,13 +1,15 @@
 package openapi
 
 import (
-	"github.com/carlos-yuan/cargen/util"
 	"go/ast"
-	"gopkg.in/yaml.v3"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/carlos-yuan/cargen/util/convert"
+	"github.com/carlos-yuan/cargen/util/fileUtil"
+	"gopkg.in/yaml.v3"
 )
 
 type Package struct {
@@ -37,7 +39,7 @@ func (pkg *Package) FindConfig() {
 	}
 	err := filepath.Walk(pkg.ModPath, func(path string, info os.FileInfo, err error) error {
 		if info.Name() == ConfigFileName {
-			b, err := util.ReadAll(path)
+			b, err := fileUtil.ReadAll(path)
 			if err != nil {
 				log.Println(err)
 			}
@@ -62,7 +64,7 @@ func (pkg *Package) FindPkgStruct() {
 		for _, spec := range file.Imports {
 			path := strings.ReplaceAll(spec.Path.Value, `"`, "")
 			if spec.Name == nil {
-				imports[util.LastName(path)] = path
+				imports[convert.LastName(path)] = path
 			} else {
 				imports[spec.Name.Name] = path
 			}

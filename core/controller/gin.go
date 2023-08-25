@@ -3,14 +3,16 @@ package ctl
 import (
 	"context"
 	"errors"
+	"io"
+	"net/http"
 	"reflect"
 	"strings"
 	"sync"
 
 	"github.com/carlos-yuan/cargen/core/config"
-	"github.com/carlos-yuan/cargen/core/controller/token"
 	e "github.com/carlos-yuan/cargen/core/error"
 	"github.com/carlos-yuan/cargen/util/timeUtil"
+
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
@@ -43,7 +45,7 @@ var _ ControllerContext = &GinControllerContext{}
 type GinControllerContext struct {
 	*gin.Context
 	conf  *config.Web
-	token token.Token
+	token Token
 }
 
 func (c *GinControllerContext) Bind(params any, opts ...BindOption) {
@@ -53,9 +55,8 @@ func (c *GinControllerContext) Bind(params any, opts ...BindOption) {
 	} else {
 		bindings = constructor.GetBindingByOptions(opts)
 	}
-	for i, bind := range bindings {
+	for _, bind := range bindings {
 		var err error
-		println(i)
 		if bind == nil {
 			err = c.Context.ShouldBindUri(params)
 		} else {
@@ -81,33 +82,34 @@ func (c *GinControllerContext) Bind(params any, opts ...BindOption) {
 	}
 }
 
-func (c *GinControllerContext) CheckToken() {
-	var err error
-	c.token.Token, err = c.jwtFromHeader(c.conf.Token.HeaderName, c.conf.Token.HeaderType)
+func (c *GinControllerContext) CheckToken(tk Token) {
+	if tk == nil {
+		panic(e.AuthorizeError.SetErr(errors.New("token instance not set")))
+	}
+	c.token = tk
+	token, err := c.tokenFromHeader(c.token.GetConfig().HeaderName, c.token.GetConfig().HeaderType)
 	if err != nil {
 		if err != ErrEmptyAuthHeader {
 			panic(e.AuthorizeError.SetErr(err))
 		}
-		if c.conf.Token.CookieName != "" {
-			c.token.Token, err = c.jwtFromCookie(c.conf.Token.CookieName)
+		if c.token.GetConfig().CookieName != "" {
+			token, err = c.tokenFromCookie(c.token.GetConfig().CookieName)
 		}
 	}
 	if err != nil {
 		panic(e.AuthorizeError.SetErr(err))
 	}
-	c.token.Type.Alg = c.conf.Token.Alg
-	err = c.token.Verify(c.conf.Token.Key)
+	err = c.token.Verify(token)
 	if err != nil {
 		panic(e.AuthorizeError.SetErr(err))
 	}
 	pl := c.token.GetPayLoad()
-	if pl.Exp < timeUtil.Milli() {
+	if pl.Expire() < timeUtil.Milli() {
 		panic(e.AuthorizeTimeOutError)
 	}
-	c.Context.Set(token.GrpcTokenStringKey, c.GetToken())
 }
 
-func (c *GinControllerContext) GetToken() *token.Payload {
+func (c *GinControllerContext) GetToken() Payload {
 	return c.token.GetPayLoad()
 }
 
@@ -128,7 +130,7 @@ func (c *GinControllerContext) GetContext() context.Context {
 	return c
 }
 
-func (c *GinControllerContext) jwtFromHeader(key, typ string) (string, error) {
+func (c *GinControllerContext) tokenFromHeader(key, typ string) (string, error) {
 	authHeader := c.Request.Header.Get(key)
 	if authHeader == "" {
 		return "", ErrEmptyAuthHeader
@@ -140,7 +142,7 @@ func (c *GinControllerContext) jwtFromHeader(key, typ string) (string, error) {
 	return parts[1], nil
 }
 
-func (c *GinControllerContext) jwtFromQuery(key string) (string, error) {
+func (c *GinControllerContext) tokenFromQuery(key string) (string, error) {
 	token := c.Query(key)
 	if token == "" {
 		return "", ErrEmptyQueryToken
@@ -148,7 +150,7 @@ func (c *GinControllerContext) jwtFromQuery(key string) (string, error) {
 	return token, nil
 }
 
-func (c *GinControllerContext) jwtFromCookie(key string) (string, error) {
+func (c *GinControllerContext) tokenFromCookie(key string) (string, error) {
 	cookie, _ := c.Cookie(key)
 	if cookie == "" {
 		return "", ErrEmptyCookieToken
@@ -166,6 +168,7 @@ const (
 	form
 	query
 	uri
+	file
 )
 
 var constructor = &bindConstructor{}
@@ -196,6 +199,8 @@ func (e *bindConstructor) GetBindingByOption(opt BindOption) binding.Binding {
 		return &binding.Form
 	case query:
 		return &binding.Query
+	case file:
+		return ginFormMultipartFileBinding
 	case uri:
 		return nil
 	}
@@ -234,6 +239,9 @@ func (e *bindConstructor) resolve(d any) map[BindOption]binding.Binding {
 		if _, ok = tag.Lookup("query"); ok {
 			bs[query] = e.GetBindingByOption(query)
 		}
+		if _, ok = tag.Lookup("file"); ok {
+			bs[file] = e.GetBindingByOption(file)
+		}
 		if _, ok = tag.Lookup("uri"); ok {
 			bs[uri] = e.GetBindingByOption(uri)
 		}
@@ -265,4 +273,97 @@ func (e *bindConstructor) setBinding(name string, bs map[BindOption]binding.Bind
 		e.cache = make(map[string]map[BindOption]binding.Binding)
 	}
 	e.cache[name] = bs
+}
+
+const defaultMemory = 32 << 20
+
+var ginFormMultipartFileBinding GinFormMultipartFileBinding
+
+type GinFormMultipartFileBinding struct {
+}
+
+func (GinFormMultipartFileBinding) Name() string {
+	return "multipart/form-data"
+}
+
+var typeArrayByte = reflect.TypeOf([]byte{})
+var typeArrayArrayByte = reflect.TypeOf([][]byte{})
+
+func (GinFormMultipartFileBinding) Bind(req *http.Request, ptr any) error {
+	if req.MultipartForm == nil {
+		if err := req.ParseMultipartForm(defaultMemory); err != nil {
+			return err
+		}
+	}
+	if err := req.ParseMultipartForm(defaultMemory); err != nil {
+		return err
+	}
+	ptrVal := reflect.ValueOf(ptr)
+	if ptrVal.Kind() != reflect.Ptr {
+		return errors.New("multipart file binding only works on pointer types")
+	}
+	for i := 0; i < ptrVal.Elem().NumField(); i++ {
+		field := ptrVal.Elem().Type().Field(i)
+		tag, ok := field.Tag.Lookup("file")
+		if ok {
+			files := req.MultipartForm.File[tag]
+			if len(files) == 0 {
+				continue
+			}
+			if field.Type == typeArrayByte {
+				f, err := files[0].Open()
+				defer f.Close()
+				if err != nil {
+					return err
+				}
+				b, err := io.ReadAll(f)
+				if err != nil {
+					return err
+				}
+				ptrVal.Elem().Field(i).SetBytes(b)
+			} else if field.Type == typeArrayArrayByte {
+				byts := make([][]byte, len(files))
+				for i, file := range files {
+					f, err := file.Open()
+					defer f.Close()
+					if err != nil {
+						return err
+					}
+					b, err := io.ReadAll(f)
+					if err != nil {
+						return err
+					}
+					byts[i] = b
+				}
+				ptrVal.Elem().Field(i).Set(reflect.ValueOf(byts))
+			}
+		}
+	}
+	return nil
+}
+
+type GinRegister struct {
+	Method  string
+	Path    string
+	Handles []gin.HandlerFunc
+}
+
+type GinRegisterList []GinRegister
+
+// 加载路由
+func (r GinRegisterList) LoadRoute(g *gin.Engine) {
+	for _, handler := range r {
+		switch handler.Method {
+		case http.MethodGet:
+			g.GET(handler.Path, handler.Handles...)
+		case http.MethodPost:
+			g.POST(handler.Path, handler.Handles...)
+		case http.MethodPut:
+			g.PUT(handler.Path, handler.Handles...)
+		case http.MethodPatch:
+			g.PATCH(handler.Path, handler.Handles...)
+		case http.MethodDelete:
+			g.DELETE(handler.Path, handler.Handles...)
+		}
+	}
 }

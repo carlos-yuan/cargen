@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"log"
 	"runtime/debug"
 	"strings"
 
+	"github.com/bytedance/gopkg/util/logger"
 	"gorm.io/gorm"
 )
 
@@ -15,7 +15,7 @@ type Err struct {
 	Code   int    `json:"code"`
 	Msg    string `json:"msg"`
 	Site   string `json:"site"`   //发生位置
-	Err    error  `json:"err"`    //包裹错误
+	Err    error  `json:"-"`      //包裹错误
 	ErrMsg string `json:"errMsg"` //包裹错误信息
 }
 
@@ -28,6 +28,9 @@ var UpdateFailure = Err{Msg: "更新失败"}
 func (e Err) SetErr(err error, msg ...string) Err {
 	if len(msg) == 1 {
 		e.Msg = msg[0]
+		if err == gorm.ErrRecordNotFound {
+			e.Code = NotFindErrorCode
+		}
 	} else {
 		if strings.Contains(err.Error(), DuplicateEntry) {
 			e.Code = InternalServerErrorCode
@@ -66,6 +69,14 @@ func (e Err) Error() string {
 	return e.Msg
 }
 
+func (e Err) Is(err error) bool {
+	errInfo, ok := err.(Err)
+	if ok {
+		return errInfo.Code == NotFindErrorCode
+	}
+	return false
+}
+
 func PrintError(err error) {
 	var buffer bytes.Buffer
 	printError(&buffer, err)
@@ -85,10 +96,10 @@ func printError(siteBuffer *bytes.Buffer, err error) {
 		if me.Err != nil {
 			printError(siteBuffer, me.Err)
 		} else {
-			log.Println(siteBuffer.String() + ":  " + me.Msg)
+			logger.Error(siteBuffer.String() + ":  " + me.Msg)
 		}
 	} else {
-		log.Println(siteBuffer.String() + ":  " + err.Error())
+		logger.Error(siteBuffer.String() + ":  " + err.Error())
 	}
 }
 
@@ -99,4 +110,12 @@ func GetSite(line int) string {
 	site := strings.ReplaceAll(sites[line], "\t", "")
 	site = site[strings.LastIndex(site[:strings.LastIndex(site, "/")], "/")+1:]
 	return site
+}
+
+type WarpErr struct {
+	Error Err
+}
+
+func (e WarpErr) Err(err error, msg ...string) Err {
+	return e.Error.SetErr(err, msg...)
 }

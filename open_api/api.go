@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/carlos-yuan/cargen/util"
+	"github.com/carlos-yuan/cargen/util/convert"
 )
 
 type Api struct {
@@ -46,20 +46,20 @@ func (a *Api) GetRequestPath() string {
 			prefix = a.sct.pkg.config.Web.Prefix
 		}
 	}
-	prefix += a.sct.pkg.Path[:strings.Index(a.sct.pkg.Path, "/")+1]    //包名
-	name := util.FistToLower(a.Group) + "/" + util.FistToLower(a.Name) //结构体名+方法名
+	prefix += a.sct.pkg.Path[:strings.Index(a.sct.pkg.Path, "/")+1]          //包名
+	name := convert.FistToLower(a.Group) + "/" + convert.FistToLower(a.Name) //结构体名+方法名
 	if a.RequestPath != "" {
 		if a.RequestPath == "-" {
-			name = util.FistToLower(a.Group)
+			name = convert.FistToLower(a.Group)
 		} else {
-			name = util.FistToLower(a.Group) + "/" + a.RequestPath
+			name = convert.FistToLower(a.Group) + "/" + a.RequestPath
 		}
 	}
 	return prefix + name
 }
 
 func (a *Api) GetRequestPathNoGroup() string {
-	name := "/" + util.FistToLower(a.Name)
+	name := "/" + convert.FistToLower(a.Name)
 	if a.RequestPath != "" {
 		if a.RequestPath == "-" {
 			name = ""

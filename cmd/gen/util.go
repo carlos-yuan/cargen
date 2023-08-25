@@ -4,12 +4,14 @@ import (
 	"bytes"
 
 	"fmt"
-	"github.com/carlos-yuan/cargen/util"
 	"go/ast"
 	"go/doc"
 
 	"regexp"
 	"strings"
+
+	"github.com/carlos-yuan/cargen/util/convert"
+	"github.com/carlos-yuan/cargen/util/fileUtil"
 )
 
 func ModelToProtobuf(path, protoPkg, goPkg, modelPath, modelName string) {
@@ -54,7 +56,7 @@ func ModelToProtobuf(path, protoPkg, goPkg, modelPath, modelName string) {
 						typ = "string"
 					}
 					if name != "ID" {
-						name = util.FistToLower(name)
+						name = convert.FistToLower(name)
 					}
 					reg := regexp.MustCompile("`gorm:(.*);comment:(.*)\"(.*)json:(.*)`")
 					params := reg.FindStringSubmatch(field.Tag.Value)
@@ -72,7 +74,7 @@ func ModelToProtobuf(path, protoPkg, goPkg, modelPath, modelName string) {
 		}
 	}
 	dir := path + "/" + protoPkg + "/rpc/" + protoPkg + "_model_gen.proto"
-	err = util.WriteByteFile(dir, protoBuf.Bytes())
+	err = fileUtil.WriteByteFile(dir, protoBuf.Bytes())
 	if err != nil {
 		panic(err)
 	}

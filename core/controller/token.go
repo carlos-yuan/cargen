@@ -1,6 +1,6 @@
 package ctl
 
-import "github.com/carlos-yuan/cargen/util/config"
+import "github.com/carlos-yuan/cargen/core/config"
 
 type Token interface {
 	Sign() error

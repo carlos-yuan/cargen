@@ -1,11 +1,13 @@
 package gen
 
 import (
+	"strings"
+	"time"
+
 	"github.com/carlos-yuan/cargen/enum"
 	openapi "github.com/carlos-yuan/cargen/open_api"
 	"github.com/carlos-yuan/cargen/util"
-	"strings"
-	"time"
+	"github.com/carlos-yuan/cargen/util/fileUtil"
 )
 
 type Config struct {
@@ -31,15 +33,16 @@ const (
 	GenDoc    = "doc"
 	GenRouter = "router"
 	GenEnum   = "enum"
+	GenConfig = "config"
 )
 
 func (c Config) Build() {
 	start := time.Now().UnixMilli()
 	if c.Path != "" {
-		c.Path = util.FixPathSeparator(c.Path)
+		c.Path = fileUtil.FixPathSeparator(c.Path)
 	}
 	if c.Out != "" {
-		c.Out = util.FixPathSeparator(c.Out)
+		c.Out = fileUtil.FixPathSeparator(c.Out)
 	}
 	switch c.Gen {
 	case GenGrpc:
@@ -60,6 +63,8 @@ func (c Config) Build() {
 		openapi.GenFromPath(c.Name, c.Des, c.Version, c.Path, c.Out)
 	case GenEnum:
 		enum.GenEnum(c.Path, c.DictTable, c.DictType, c.DictName, c.DictLabel, c.DictValue, c.DbDsn)
+	case GenConfig:
+		ConfigGen(c.Path)
 	}
 	if c.Path != "" {
 		util.GoFmt(c.Path)
