@@ -55,7 +55,7 @@ func CreateApiRouter(genPath string) {
 						}
 					}
 					if !isByteArray {
-						apiWriter.WriteString(fmt.Sprintf("\n\t\t\tctl.GinRegister{Method: \"%s\", Path: prefix + \"%s\", Handles: []gin.HandlerFunc{func(ctx *gin.Context) {"+
+						apiWriter.WriteString(fmt.Sprintf("\n\t\t\tctl.GinRegister{Method: \"%s\", Path: prefix + `%s`, Handles: []gin.HandlerFunc{func(ctx *gin.Context) {"+
 							"\n\t\t\t\tt := t.SetContext(ctx)"+
 							"%s"+ //鉴权
 							"\n\t\t\t\tctx.JSON(200, t.%s())"+
@@ -66,7 +66,7 @@ func CreateApiRouter(genPath string) {
 							api.Name,
 						))
 					} else {
-						apiWriter.WriteString(fmt.Sprintf("\n\t\t\tctl.GinRegister{Method: \"%s\", Path: prefix + \"%s\", Handles: []gin.HandlerFunc{func(ctx *gin.Context) {"+
+						apiWriter.WriteString(fmt.Sprintf("\n\t\t\tctl.GinRegister{Method: \"%s\", Path: prefix + `%s`, Handles: []gin.HandlerFunc{func(ctx *gin.Context) {"+
 							"\n\t\t\t\tt := t.SetContext(ctx)"+
 							"%s"+ //鉴权
 							"\n\t\t\t\tres := t.%s()"+ //鉴权

@@ -1,4 +1,4 @@
-package gin
+package ginmid
 
 import (
 	"github.com/gin-gonic/gin"

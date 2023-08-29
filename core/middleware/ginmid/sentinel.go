@@ -1,4 +1,4 @@
-package gin
+package ginmid
 
 import (
 	"github.com/alibaba/sentinel-golang/core/system"

@@ -1,10 +1,11 @@
-package gin
+package ginmid
 
 import (
 	"context"
-	"github.com/gin-gonic/gin"
 	"net/http"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
 func TimeoutMiddleware(timeout time.Duration) func(c *gin.Context) {

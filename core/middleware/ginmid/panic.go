@@ -1,4 +1,4 @@
-package gin
+package ginmid
 
 import (
 	e "github.com/carlos-yuan/cargen/core/error"
