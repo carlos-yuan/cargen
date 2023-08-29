@@ -109,7 +109,7 @@ import (
 func init() {
 	err := config.Container.Invoke(func(t *%s, c *config.Config) {
 		mod, name := convert.GetStructModAndName(t)
-		t.ControllerContext = ctl.NewGinContext(c.Web[mod])
+		t.ControllerContext = ctl.NewGinContext(&c.Web[mod])
 		prefix := c.Web[mod].Prefix + strings.ToLower(mod) + "/" + convert.FistToLower(name)
 		routerList = append(routerList,
 %s
