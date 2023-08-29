@@ -2,6 +2,7 @@ package e
 
 import (
 	"strconv"
+	"sync"
 )
 
 const (
@@ -20,14 +21,6 @@ const (
 	RPCServerErrorCode = 1006
 
 	AuthorizeTimeOutErrorCode = 1007
-
-	EdgeUserGrpcErrorCode = 2001
-
-	EdgePermitGrpcErrorCode = 2002
-
-	EdgeDictGrpcErrorCode = 2003
-
-	EdgeProductGrpcErrorCode = 2004
 )
 
 // 控制器处理出错 错误码
@@ -49,31 +42,26 @@ var (
 	RPCServerErrorCodeError = Err{Code: RPCServerErrorCode}
 )
 
-// 业务rpc对应错误码
-var (
-	EdgeUserGrpcError = Err{Code: EdgeUserGrpcErrorCode}
+var codeNameMap map[int]string = map[int]string{
+	InternalServerErrorCode:   "服务内部错误:",
+	RPCClientErrorCode:        "服务连接错误:",
+	AuthorizeErrorCode:        "授权校验失败:",
+	AuthorizeTimeOutErrorCode: "授权失效:",
+}
 
-	EdgePermitGrpcError = Err{Code: EdgePermitGrpcErrorCode}
+var codeNameMutex sync.Mutex
 
-	EdgeDictGrpcError = Err{Code: EdgeDictGrpcErrorCode}
-
-	EdgeProductGrpcError = Err{Code: EdgeProductGrpcErrorCode}
-)
+func SetCodeNameMap(code int, name string) {
+	codeNameMutex.Lock()
+	codeNameMap[code] = name
+	codeNameMutex.Unlock()
+}
 
 func (e Err) CodeName() string {
-	switch e.Code {
-	case EdgeUserGrpcErrorCode:
-		return "用户GRPC服务:" + strconv.Itoa(EdgeUserGrpcErrorCode)
-	case EdgePermitGrpcErrorCode:
-		return "许可证GRPC服务:" + strconv.Itoa(EdgePermitGrpcErrorCode)
-	case InternalServerErrorCode, NotFindErrorCode:
-		return "服务内部错误:" + strconv.Itoa(InternalServerErrorCode)
-	case RPCClientErrorCode:
-		return "服务连接错误:" + strconv.Itoa(RPCClientErrorCode)
-	case AuthorizeErrorCode:
-		return "授权校验失败:" + strconv.Itoa(AuthorizeErrorCode)
-	case AuthorizeTimeOutErrorCode:
-		return "授权失效:" + strconv.Itoa(AuthorizeTimeOutErrorCode)
+	for k, v := range codeNameMap {
+		if e.Code == k {
+			return v + strconv.Itoa(e.Code)
+		}
 	}
 	return "Unknown err:" + strconv.Itoa(e.Code)
 }
