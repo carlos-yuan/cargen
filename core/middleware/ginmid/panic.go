@@ -1,6 +1,8 @@
 package ginmid
 
 import (
+	"runtime/debug"
+
 	e "github.com/carlos-yuan/cargen/core/error"
 
 	"github.com/gin-gonic/gin"
@@ -23,6 +25,7 @@ func Panic() gin.HandlerFunc {
 						return
 					}
 				}
+				println(debug.Stack())
 				c.JSON(500, e.InternalServerError.SetRecover(rec))
 			}
 		}()

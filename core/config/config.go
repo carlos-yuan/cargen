@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"sync"
 
 	redisd "github.com/carlos-yuan/cargen/util/redis"
 
@@ -41,8 +42,29 @@ type Config struct {
 	Gorm     map[string]Gorm          `yaml:"gorm"`
 	Redis    map[string]redisd.Config `yaml:"redis"`
 	Grpc     map[string]Grpc          `yaml:"grpc"`
-	Sms      map[string]Sms           `yaml:"sms"` //短信
 	Web      map[string]*Web          `yaml:"web"`
+	Attach   interface{}              `yaml:"attach"` //附加配置 用户定义
+}
+
+var configMutex sync.Mutex
+
+func (g *Config) BindAttachType(dst any) error {
+	configMutex.Lock()
+	defer configMutex.Unlock()
+	_, ok := g.Attach.(map[string]interface{})
+	if !ok {
+		return nil
+	}
+	b, err := json.Marshal(g.Attach)
+	if err != nil {
+		return err
+	}
+	err = json.Unmarshal(b, dst)
+	if err != nil {
+		return err
+	}
+	g.Attach = dst
+	return err
 }
 
 // Gorm gorm配置参数
@@ -105,6 +127,8 @@ type Web struct {
 }
 
 func (g *Web) BindAttachType(dst any) error {
+	configMutex.Lock()
+	defer configMutex.Unlock()
 	b, err := json.Marshal(g.Attach)
 	if err != nil {
 		return err
@@ -132,10 +156,4 @@ type Token struct {
 	Typ        string `yaml:"type"`   //鉴权类型
 	AuthTo     string `yaml:"authTo"` //鉴权所属 比如鉴权类型JWT，鉴权用户User JWT:User
 	Expire     int64  `yaml:"expire"` //过期时间秒
-}
-
-type Sms struct {
-	RegionId  string `yaml:"regionId"`
-	AccessKey string `yaml:"accessKey"`
-	Secret    string `yaml:"secret"`
 }
