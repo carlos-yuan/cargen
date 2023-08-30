@@ -63,7 +63,7 @@ func GenEnum(path, dictTable, dictType, dictName, dictLabel, dictValue, dsn stri
 			constCode = constCode[:len(constCode)-1]
 		}
 		if len(constCode) > 0 {
-			buf.WriteString(fmt.Sprintf(enumTemplate, key, constCode, key, caseCode, key, key, key))
+			buf.WriteString(fmt.Sprintf(enumTemplate, key, constCode, key, caseCode, key, key, key, key, key, key))
 		}
 	}
 	err = fileUtil.WriteByteFile(path+"/enum/enum.go", buf.Bytes())
@@ -98,6 +98,14 @@ func (t %s) String() string {
 %s
 	}
 	return ""
+}
+
+func %sFrom[T ~int | ~int32 | ~int64](e T) *%s {
+	t := %s(e)
+	if t.String() == "" {
+		return nil
+	}
+	return &t
 }
 
 func (t %s) Int() int {
