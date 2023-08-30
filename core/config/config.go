@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	redisd "github.com/carlos-yuan/cargen/util/redis"
+	"github.com/jinzhu/copier"
 
 	"go.uber.org/dig"
 )
@@ -48,23 +49,28 @@ type Config struct {
 
 var configMutex sync.Mutex
 
-func (g *Config) BindAttachType(dst any) error {
+func (c *Config) BindAttachType(dst any) (Config, error) {
 	configMutex.Lock()
 	defer configMutex.Unlock()
-	_, ok := g.Attach.(map[string]interface{})
+	_, ok := c.Attach.(map[string]interface{})
 	if !ok {
-		return nil
+		return *c, nil
 	}
-	b, err := json.Marshal(g.Attach)
+	b, err := json.Marshal(c.Attach)
 	if err != nil {
-		return err
+		return *c, err
 	}
 	err = json.Unmarshal(b, dst)
 	if err != nil {
-		return err
+		return *c, err
 	}
-	g.Attach = dst
-	return err
+	c.Attach = dst
+	var config Config
+	err = copier.CopyWithOption(&config, c, copier.Option{IgnoreEmpty: true, DeepCopy: true})
+	if err != nil {
+		return *c, err
+	}
+	return config, err
 }
 
 // Gorm gorm配置参数
@@ -126,19 +132,24 @@ type Web struct {
 	Attach interface{} `yaml:"attach"` //附加配置 用户定义
 }
 
-func (g *Web) BindAttachType(dst any) error {
+func (c *Web) BindAttachType(dst any) (Web, error) {
 	configMutex.Lock()
 	defer configMutex.Unlock()
-	b, err := json.Marshal(g.Attach)
+	b, err := json.Marshal(c.Attach)
 	if err != nil {
-		return err
+		return *c, err
 	}
 	err = json.Unmarshal(b, dst)
 	if err != nil {
-		return err
+		return *c, err
 	}
-	g.Attach = dst
-	return err
+	c.Attach = dst
+	var config Web
+	err = copier.CopyWithOption(&config, c, copier.Option{IgnoreEmpty: true, DeepCopy: true})
+	if err != nil {
+		return *c, err
+	}
+	return config, err
 }
 
 func (g *Web) Address() string {

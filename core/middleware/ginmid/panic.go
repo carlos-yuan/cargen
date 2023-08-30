@@ -25,7 +25,7 @@ func Panic() gin.HandlerFunc {
 						return
 					}
 				}
-				println(debug.Stack())
+				println(string(debug.Stack()))
 				c.JSON(500, e.InternalServerError.SetRecover(rec))
 			}
 		}()
