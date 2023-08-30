@@ -1,11 +1,16 @@
-package gormutl
+package gormutil
 
 import (
 	"errors"
+	"fmt"
+	"regexp"
+	"runtime/debug"
+	"time"
+
+	e "github.com/carlos-yuan/cargen/core/error"
 	"gorm.io/gen"
 	"gorm.io/gen/field"
-	"regexp"
-	"time"
+	"gorm.io/gorm"
 )
 
 // 非零值过滤
@@ -549,4 +554,19 @@ func checkInjection(data string) error {
 		}
 	}
 	return nil
+}
+
+func RollBackFn(tx *gorm.DB, me e.Err, err *error) {
+	r := recover()
+	if r != nil {
+		me = me.SetRecover(r)
+		*err = &me
+		s := string(debug.Stack())
+		fmt.Printf("err=%v, stack=%s\n", err, s)
+	}
+	if err != nil && *err != nil {
+		tx.Rollback()
+	} else {
+		tx.Commit()
+	}
 }

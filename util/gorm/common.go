@@ -1,4 +1,4 @@
-package gormutl
+package gormutil
 
 type Paging struct {
 	Page  int64 `json:"page"`  //页数

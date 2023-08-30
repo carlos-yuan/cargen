@@ -1,4 +1,4 @@
-package gormutl
+package gormutil
 
 import (
 	"reflect"
