@@ -142,7 +142,7 @@ func (g *Generator) generateServiceFile(intfs []*ast.TypeSpec) {
 func (g *Generator) generateServiceHeader(method string) string {
 	txFn := ""
 	if strings.Contains(method, "gormutil.RollBackFn") {
-		txFn = "\n\tgormutil \"github.com/carlos-yuan/cargen/util/gorm\"\n"
+		txFn = "\n\tgormutil \"github.com/carlos-yuan/cargen/util/gorm\"\n\t\"gorm.io/gorm\"\n"
 	}
 	structStr := fmt.Sprintf("import (\n\t\"context\"\n\t\"%s\"%s\n)\n\n", g.Model+"/rpc/kitex_gen/"+g.PkgName, txFn)
 	return structStr
@@ -163,17 +163,28 @@ func (g *Generator) generateServiceMethod(s *ast.TypeSpec) string {
 		p := f.Params.List[1].Type.(*ast.StarExpr).X.(*ast.Ident)
 		r := f.Results.List[0].Type.(*ast.StarExpr).X.(*ast.Ident)
 		txStartStr, fieldStr, txEndStr := g.generateServiceMethodDoAndTx(s.Name.Name, m)
+		txNewInParamsStr := ""
+		txNewOutParamsStr := ""
+		if txStartStr != "" {
+			txNewOutParamsStr = ",tx"
+			txNewInParamsStr = ",tx *gorm.DB"
+		}
 		// 读取已有文件补充依赖 补充事务
 		structStr += fmt.Sprintf("func (s *%s) %s(ctx context.Context, req *%s.%s) (res *%s.%s, err error) {\n\t"+
 			"%s"+
-			"do := %s{\n%s\t}\n"+
+			"do := s.New%s(ctx%s)\n"+
 			"\tdefer func(){\n\t\tif err!=nil{\n\t\t\ts.log.PrintError(err)\n\t\t}\n\t}()\n"+
 			"%s"+
-			"\treturn do.Do(ctx, req)\n}\n\n",
+			"\treturn do.Do(req)\n}\n\n"+
+			"func (s *%s) New%s(ctx context.Context%s) %s{\n"+ //创建rpc方法结构体实例的New方法 用于外部调用该结构体内其他方法
+			"\t return %s{\nctx: ctx,\n%s\t}\n}\n\n",
 			s.Name.Name, m.Names[0].Name, g.PkgName, p.Name, g.PkgName, r.Name,
 			txStartStr,
+			m.Names[0].Name, txNewOutParamsStr,
+			txEndStr,
+			s.Name.Name, m.Names[0].Name, txNewInParamsStr, m.Names[0].Name,
 			m.Names[0].Name, fieldStr,
-			txEndStr)
+		)
 	}
 	return structStr
 }
@@ -261,7 +272,7 @@ func (g *Generator) generateMethodFile(intfs []*ast.TypeSpec) {
 					if method.Name == "Do" {
 						pOld := method.Decl.Type.Params.List
 						pNew := m.Type.(*ast.FuncType).Params.List
-						pOldExpr := pOld[1].Type.(*ast.StarExpr).X.(*ast.SelectorExpr)
+						pOldExpr := pOld[0].Type.(*ast.StarExpr).X.(*ast.SelectorExpr)
 						pNewExpr := pNew[1].Type.(*ast.StarExpr).X.(*ast.Ident)
 						if pOldExpr.X.(*ast.Ident).Name != g.PkgName || pOldExpr.Sel.Name != pNewExpr.Name {
 							//替换方法文件入参类型
@@ -317,7 +328,7 @@ func (g *Generator) generateMethodFileHeader() string {
 
 // 生成服务方法的结构体
 func (g *Generator) generateMethodFileStruct(serviceName string, f *ast.Field) string {
-	structStr := fmt.Sprintf("type %s struct {\n\t*%s\n}\n\n", f.Names[0].Name, serviceName)
+	structStr := fmt.Sprintf("type %s struct {\n\tctx context.Context\n\t*%s\n}\n\n", f.Names[0].Name, serviceName)
 	return structStr
 }
 
