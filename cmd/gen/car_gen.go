@@ -337,7 +337,7 @@ func (g *Generator) generateMethodFileStructMethod(m *ast.Field) string {
 	f := m.Type.(*ast.FuncType)
 	p := f.Params.List[1].Type.(*ast.StarExpr).X.(*ast.Ident)
 	r := f.Results.List[0].Type.(*ast.StarExpr).X.(*ast.Ident)
-	structStr := fmt.Sprintf("func (s *%s) Do(ctx context.Context, req *%s.%s) (res *%s.%s, err error) {\n\tpanic(\"implement me\")\n}\n", m.Names[0].Name, g.PkgName, p.Name, g.PkgName, r.Name)
+	structStr := fmt.Sprintf("func (s *%s) Do(req *%s.%s) (res *%s.%s, err error) {\n\tpanic(\"implement me\")\n}\n", m.Names[0].Name, g.PkgName, p.Name, g.PkgName, r.Name)
 	return structStr
 }
 
