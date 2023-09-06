@@ -44,6 +44,16 @@ func (pkgs *Packages) InitPackages(base string) {
 	if err != nil {
 		panic(err)
 	}
+	//引入部分依赖于cargen的结构体，避免文档生成时找不到结构体定义
+	cargenPath, err := fileUtil.ProjectPath()
+	if err != nil {
+		panic(err)
+	}
+	cargenFiles, err := fileUtil.GetFilePath(cargenPath, "go.mod")
+	if err != nil {
+		panic(err)
+	}
+	files = append(files, cargenFiles...)
 	for _, file := range files {
 		goModFilePathData, _ := os.ReadFile(file)
 		modFile, _ := modfile.Parse("go.mod", goModFilePathData, nil)

@@ -70,9 +70,13 @@ func (e Err) Error() string {
 }
 
 func (e Err) Is(err error) bool {
-	errInfo, ok := err.(Err)
-	if ok {
-		return errInfo.Code == NotFindErrorCode
+	if err != nil {
+		errInfo, ok := err.(Err)
+		if ok {
+			return errInfo.Code == e.Code
+		} else {
+			return e.ErrMsg == err.Error()
+		}
 	}
 	return false
 }

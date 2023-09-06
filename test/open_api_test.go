@@ -12,5 +12,18 @@ func TestOpenApi(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	openapi.GenFromPath("企业端API", "企业端的API", "1.0", "/media/ysgk/DATA/carlos/hc_enterprise_server", path+"/test/test_api.json")
+	openapi.GenFromPath("demo API", "demo的API", "1.0", "D:\\carlos\\cargen_demo", path+"/test/test_api.json")
+
+	//pkgMap, err := goparser.ParseDir(
+	//	token.NewFileSet(),
+	//	"$GOPATH/src",
+	//	func(info os.FileInfo) bool {
+	//		// skip go-test
+	//		return !strings.Contains(info.Name(), "_test.go")
+	//	},
+	//	goparser.ParseComments, // no comment
+	//)
+	//if err != nil {
+	//	return nil, err
+	//}
 }

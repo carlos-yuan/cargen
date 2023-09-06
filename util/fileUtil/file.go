@@ -296,11 +296,11 @@ func ProjectPath() (string, error) {
 	if !ok {
 		return "", errors.New("not find code file path")
 	}
-	base, err := CutPathLast(filename, 2)
+	base, err := CutPathLast(filename, 3)
 	if err != nil {
 		return "", err
 	}
-	return base, nil
+	return FixPathSeparator(base), nil
 }
 
 func GetAllPath(path string) ([]string, error) {
