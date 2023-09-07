@@ -30,7 +30,7 @@ type Api struct {
 }
 
 func (a *Api) GetOperationId() string {
-	return strings.ReplaceAll(a.sct.pkg.Path, "/", ".") + "." + a.Name + "." + a.HttpMethod
+	return strings.ReplaceAll(a.sct.Pkg.Path, "/", ".") + "." + a.Name + "." + a.HttpMethod
 }
 
 func (a *Api) GetApiPath() string {
@@ -39,14 +39,14 @@ func (a *Api) GetApiPath() string {
 
 func (a *Api) GetRequestPath() string {
 	prefix := "/"
-	if a.sct.pkg.config != nil && len(a.sct.pkg.config.Web.Prefix) > 0 {
-		if a.sct.pkg.config.Web.Prefix[0] != '/' {
-			prefix += a.sct.pkg.config.Web.Prefix
+	if a.sct.Pkg.config != nil && len(a.sct.Pkg.config.Web.Prefix) > 0 {
+		if a.sct.Pkg.config.Web.Prefix[0] != '/' {
+			prefix += a.sct.Pkg.config.Web.Prefix
 		} else {
-			prefix = a.sct.pkg.config.Web.Prefix
+			prefix = a.sct.Pkg.config.Web.Prefix
 		}
 	}
-	prefix += a.sct.pkg.Path[:strings.Index(a.sct.pkg.Path, "/")+1]          //包名
+	prefix += a.sct.Pkg.Path[:strings.Index(a.sct.Pkg.Path, "/")+1]          //包名
 	name := convert.FistToLower(a.Group) + "/" + convert.FistToLower(a.Name) //结构体名+方法名
 	if a.RequestPath != "" {
 		if a.RequestPath == "-" {
@@ -71,7 +71,7 @@ func (a *Api) GetRequestPathNoGroup() string {
 }
 
 func (a *Api) NewStruct() *Struct {
-	s := NewStruct(a.sct.pkg)
+	s := NewStruct(a.sct.Pkg)
 	return &s
 }
 
@@ -79,7 +79,7 @@ func (a *Api) NewStruct() *Struct {
 func (a *Api) SetResponseDataStruct(array bool, s *Struct) {
 	for i, field := range a.Response.Fields {
 		if field.Name == "Data" {
-			a.sct.pkg.pkgs.FindInMethodMapParams(s)
+			a.sct.Pkg.pkgs.FindInMethodMapParams(s)
 			if s != nil {
 				if s.Field != "" { //替换掉指定字段
 					for _, f := range s.Fields {
@@ -517,10 +517,10 @@ func (a *Api) FindRspMethodMap(rhs []ast.Expr) []string {
 	if len(paths) > 0 {
 		if a.Point == paths[len(paths)-1] {
 			paths[len(paths)-1] = a.Group
-			paths = append(paths, a.sct.pkg.Name)
+			paths = append(paths, a.sct.Pkg.Name)
 		}
-		if a.sct.pkg.Name == paths[len(paths)-1] {
-			paths = append(paths, a.sct.pkg.Path)
+		if a.sct.Pkg.Name == paths[len(paths)-1] {
+			paths = append(paths, a.sct.Pkg.Path)
 		} else {
 			for name, path := range a.sct.Imports {
 				if name == paths[len(paths)-1] {

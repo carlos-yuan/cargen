@@ -75,7 +75,7 @@ func (pkg *Package) FindPkgStruct() {
 					for _, spec := range gendecl.Specs {
 						ts, ok := spec.(*ast.TypeSpec)
 						if ok {
-							s := Struct{Name: ts.Name.Name, Imports: imports, pkg: pkg}
+							s := Struct{Name: ts.Name.Name, Imports: imports, Pkg: pkg}
 							s.Des = FormatComment(gendecl.Doc)
 							if s.Des == "" {
 								s.Des = s.Name
@@ -93,6 +93,19 @@ func (pkg *Package) FindPkgStruct() {
 			}
 		}
 	}
+}
+
+func FindImports(file *ast.File) map[string]string {
+	var imports = make(map[string]string)
+	for _, spec := range file.Imports {
+		path := strings.ReplaceAll(spec.Path.Value, `"`, "")
+		if spec.Name == nil {
+			imports[convert.LastName(path)] = path
+		} else {
+			imports[spec.Name.Name] = path
+		}
+	}
+	return imports
 }
 
 func (pkg *Package) FindPkgApi() {

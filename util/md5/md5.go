@@ -12,6 +12,11 @@ func Encode(str string) string {
 	return hex.EncodeToString(h.Sum(nil))
 }
 
+func Encode16(str string) string {
+	str = Encode(str)
+	return str[8:24]
+}
+
 func EncodeAny(data interface{}) string {
 	h := md5.New()
 	b, _ := json.Marshal(data)

@@ -15,7 +15,7 @@ type Field struct {
 	In        string  `json:"in"`        //存在类型 path 路径 json json对象内
 	ParamName string  `json:"paramName"` //参数名
 	Validate  string  `json:"validate"`  //验证
-	Pkg       string  `json:"pkg"`       //包名 类型为结构体时
+	Pkg       string  `json:"Pkg"`       //包名 类型为结构体时
 	PkgPath   string  `json:"pkgPath"`   //包路径 类型为结构体时
 	Comment   string  `json:"comment"`   //注释
 	Array     bool    `json:"array"`     //是否数组

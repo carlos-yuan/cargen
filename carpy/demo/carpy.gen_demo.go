@@ -3,69 +3,84 @@ package demo
 import (
 	"errors"
 	"github.com/carlos-yuan/cargen/carpy"
-	"github.com/carlos-yuan/cargen/carpy/demo/pkg1"
-	"github.com/carlos-yuan/cargen/carpy/demo/pkg2"
+	pkg1a20b31f2907910b1 "github.com/carlos-yuan/cargen/carpy/demo/pkg1"
+	pkg28013fd659cb047fb "github.com/carlos-yuan/cargen/carpy/demo/pkg2"
 )
 
 func init() {
-	cp = &mainCp{}
+	cp = &carpydemo{}
 }
 
-type mainCp struct{}
+type carpydemo struct{}
 
-func (c *mainCp) Copy(to any, from any, opts ...carpy.CopyOption) error {
+func (c *carpydemo) Copy(to any, from any, opts ...carpy.CopyOption) error {
 	if to == nil || from == nil {
 		return nil
 	}
 	switch to := to.(type) {
+
 	case *Pkg:
 		switch from := from.(type) {
-		case *pkg1.Pkg1:
-			return CopyCargenCarpyDemoPkg1Pkg1ToCargenCarpyDemoPkg(to, from, opts...)
+
+		case *pkg1a20b31f2907910b1.Pkg1:
+			return CopyPkg1ToPkg5034dfa3363c1a27(to, from, opts...)
+
 		default:
 			return errors.New("unknown copy from " + carpy.GetTypeName(from))
 		}
-	case *pkg1.Pkg1:
+
+	case *pkg1a20b31f2907910b1.Pkg1:
 		switch from := from.(type) {
-		case *pkg2.Pkg2:
-			return CopyCargenCarpyDemoPkg2Pkg2ToCargenCarpyDemoPkg1Pkg1(to, from, opts...)
-		default:
-			return errors.New("unknown copy from " + carpy.GetTypeName(from))
-		}
-	case *pkg2.Pkg2:
-		switch from := from.(type) {
+
 		case *Pkg:
-			return CopyCargenCarpyDemoPkgToCargenCarpyDemoPkg2Pkg2(to, from, opts...)
+			return CopyPkgToPkg1f69e3fbc82aa5597(to, from, opts...)
+
+		case *pkg28013fd659cb047fb.Pkg2:
+			return CopyPkg2ToPkg12b34611c8d60e091(to, from, opts...)
+
 		default:
 			return errors.New("unknown copy from " + carpy.GetTypeName(from))
 		}
+
+	case *pkg28013fd659cb047fb.Pkg2:
+		switch from := from.(type) {
+
+		case *Pkg:
+			return CopyPkgToPkg2b11976f4e87833b6(to, from, opts...)
+
+		default:
+			return errors.New("unknown copy from " + carpy.GetTypeName(from))
+		}
+
 	default:
 		return errors.New("unknown copy to " + carpy.GetTypeName(to))
+
 	}
 }
 
-func CopyCargenCarpyDemoPkg2Pkg2ToCargenCarpyDemoPkg1Pkg1(to *pkg1.Pkg1, from *pkg2.Pkg2, opts ...carpy.CopyOption) (err error) {
-	to.Name = from.Name
-	to.Count = int(from.Count)
-	return
-}
-
-func CopyCargenCarpyDemoPkgToCargenCarpyDemoPkg2Pkg2(to *pkg2.Pkg2, from *Pkg, opts ...carpy.CopyOption) (err error) {
-	to.Name = from.Name
-	for _, opt := range opts {
-		dst, err := opt(to.Count, from.Count)
-		if err != nil {
-			return err
-		}
-		if count, ok := dst.(int32); ok {
-			to.Count = count
-		}
-	}
-	return
-}
-
-func CopyCargenCarpyDemoPkg1Pkg1ToCargenCarpyDemoPkg(to *Pkg, from *pkg1.Pkg1, opts ...carpy.CopyOption) (err error) {
+func CopyPkg1ToPkg5034dfa3363c1a27(to *Pkg, from *pkg1a20b31f2907910b1.Pkg1, opts ...carpy.CopyOption) (err error) {
 	to.Name = from.Name
 	to.Count = int64(from.Count)
+
+	return
+}
+
+func CopyPkgToPkg1f69e3fbc82aa5597(to *pkg1a20b31f2907910b1.Pkg1, from *Pkg, opts ...carpy.CopyOption) (err error) {
+	to.Name = from.Name
+	to.Count = int(from.Count)
+
+	return
+}
+
+func CopyPkg2ToPkg12b34611c8d60e091(to *pkg1a20b31f2907910b1.Pkg1, from *pkg28013fd659cb047fb.Pkg2, opts ...carpy.CopyOption) (err error) {
+	to.Name = from.Name
+	to.Count = int(from.Count)
+
+	return
+}
+
+func CopyPkgToPkg2b11976f4e87833b6(to *pkg28013fd659cb047fb.Pkg2, from *Pkg, opts ...carpy.CopyOption) (err error) {
+	to.Name = from.Name
+
 	return
 }

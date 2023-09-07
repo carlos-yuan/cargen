@@ -16,7 +16,7 @@ type Struct struct {
 	Imports   map[string]string //包下所有导入的包信息
 	Methods   []StructMethod    `json:"methods"` //方法列表 包括接口的方法
 	Api       []Api             //所有API接口信息
-	pkg       *Package
+	Pkg       *Package
 }
 
 type MethodMap struct {
@@ -25,7 +25,7 @@ type MethodMap struct {
 }
 
 func NewStruct(pkg *Package) Struct {
-	return Struct{pkg: pkg}
+	return Struct{Pkg: pkg}
 }
 
 func (sct Struct) Copy() Struct {
@@ -39,7 +39,7 @@ func (sct Struct) Copy() Struct {
 		Imports:   sct.Imports,
 		Methods:   sct.Methods,
 		Api:       sct.Api,
-		pkg:       sct.pkg,
+		Pkg:       sct.Pkg,
 	}
 	for _, field := range sct.Fields {
 		s.Fields = append(s.Fields, field)
@@ -131,10 +131,10 @@ func (sct *Struct) GetStructFromAstStructType(s *ast.StructType) {
 					if f.Pkg != "" {
 						f.PkgPath = sct.Imports[f.Pkg]
 					} else {
-						f.Pkg = sct.pkg.Name
-						f.PkgPath = sct.pkg.Path
+						f.Pkg = sct.Pkg.Name
+						f.PkgPath = sct.Pkg.Path
 					}
-					f.Struct = sct.pkg.pkgs.FindStructPtr(f.PkgPath, f.Pkg, f.Type)
+					f.Struct = sct.Pkg.pkgs.FindStructPtr(f.PkgPath, f.Pkg, f.Type)
 				}
 			}
 			sct.Fields = append(sct.Fields, f)

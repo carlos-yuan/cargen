@@ -4,6 +4,7 @@ import (
 	"github.com/carlos-yuan/cargen/carpy"
 	"github.com/carlos-yuan/cargen/carpy/demo/pkg1"
 	"github.com/carlos-yuan/cargen/carpy/demo/pkg2"
+	"github.com/carlos-yuan/cargen/enum"
 )
 
 var cp carpy.Copy
@@ -21,7 +22,7 @@ func TestCopy() {
 		panic(err)
 	}
 	err = cp.Copy(&c3, &c1, func(to any, from any) (any, error) {
-		err := cp.Copy(&c2, &c3)
+		err := cp.Copy(&c2, &c1)
 		if err != nil {
 			panic(err)
 		}
@@ -44,6 +45,7 @@ func TestCopy() {
 type Pkg struct {
 	Name  string
 	Count int64
+	Dict  map[string]enum.Dict
 }
 
 func (p *Pkg) CopyTest() {
