@@ -19,7 +19,21 @@ type Field struct {
 	PkgPath   string  `json:"pkgPath"`   //包路径 类型为结构体时
 	Comment   string  `json:"comment"`   //注释
 	Array     bool    `json:"array"`     //是否数组
+	Ptr       bool    `json:"ptr"`       //是否指针
+	MapInfo   MapInfo `json:"mapInfo"`   //map类型键值信息
 	Struct    *Struct `json:"struct"`    //是结构体时
+}
+
+type MapInfo struct {
+	Key   MapField `json:"key"`
+	Value MapField `json:"value"`
+}
+
+type MapField struct {
+	Type    string  `json:"type"`    //类型
+	Pkg     string  `json:"Pkg"`     //包名 类型为结构体时
+	PkgPath string  `json:"pkgPath"` //包路径 类型为结构体时
+	Struct  *Struct `json:"struct"`  //是结构体时
 }
 
 const (

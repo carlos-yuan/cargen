@@ -6,6 +6,7 @@ import (
 	openapi "github.com/carlos-yuan/cargen/open_api"
 	"github.com/carlos-yuan/cargen/util/md5"
 	"go/ast"
+	"go/format"
 	"strings"
 )
 
@@ -62,18 +63,18 @@ func (c *Carpy) findCopyStruct() {
 			vsr := c.newVisitor(name, openapi.FindImports(file))
 			ast.Walk(vsr, file)
 			for _, info := range vsr.structs {
-				for _, from := range info.from {
+				for key, from := range info.from {
 					if c.cpPkgStructs[name] == nil {
 						c.cpPkgStructs[name] = &copyStructInfoList{}
 					}
-					c.cpPkgStructs[name].append(info.to, from)
+					c.cpPkgStructs[name].append(info.to, from, info.hasOpt[key])
 				}
 			}
 		}
 	}
 }
 
-func (c *Carpy) generateCopyFile() {
+func (c *Carpy) generateCopyFile() error {
 	for name, structs := range c.cpPkgStructs {
 		pkg := c.cpPkg[name]
 		imports := make(map[string]string) // map[包路径]包名+md5(包路径) 用于区别包名一样路径不一样的包
@@ -88,11 +89,6 @@ func (c *Carpy) generateCopyFile() {
 			}
 		}
 		var buf bytes.Buffer
-		var importBuf bytes.Buffer
-		for path, name := range imports {
-			importBuf.WriteString(fmt.Sprintf("%s \"%s\"\n", name, path))
-		}
-		buf.WriteString(fmt.Sprintf(templateHeader, pkg.Name, importBuf.String()))
 		copyStructName := "carpy" + pkg.Name
 		var caseBuf bytes.Buffer
 		var funcBuf bytes.Buffer
@@ -112,29 +108,8 @@ func (c *Carpy) generateCopyFile() {
 				caseFromBuf.WriteString(fmt.Sprintf(templateFromCase, fromName, funName))
 				for _, tf := range to.Fields {
 					for _, ff := range from.Fields {
-						if tf.Name == ff.Name && (tf.Name[0] > 64 && tf.Name[0] < 91 || (!strings.Contains(toName, ".") && !strings.Contains(fromName, "."))) { //可导出或本包不可导出才能拷贝
-							if tf.Type == ff.Type {
-								funcBody.WriteString(fmt.Sprintf("\tto.%s = from.%s\n", tf.Name, ff.Name))
-							} else if (tf.Type == "int" || tf.Type == "int64") && ( //以下为整形及浮点的类型强转
-							ff.Type == "int" || ff.Type == "int64" || ff.Type == "int32" || ff.Type == "rune" || ff.Type == "int16" || ff.Type == "int8" ||
-								ff.Type == "uint32" || ff.Type == "uint16" || ff.Type == "uint8") {
-								funcBody.WriteString(fmt.Sprintf("\tto.%s = %s(from.%s)\n", tf.Name, tf.Type, ff.Name))
-							} else if (tf.Type == "int32") && (ff.Type == "rune" || ff.Type == "int16" || ff.Type == "int8" ||
-								ff.Type == "uint16" || ff.Type == "uint8") {
-								funcBody.WriteString(fmt.Sprintf("\tto.%s = %s(from.%s)\n", tf.Name, tf.Type, ff.Name))
-							} else if tf.Type == "int16" && (ff.Type == "int8" || ff.Type == "uint8") {
-								funcBody.WriteString(fmt.Sprintf("\tto.%s = %s(from.%s)\n", tf.Name, tf.Type, ff.Name))
-							} else if (tf.Type == "uint" || tf.Type == "uint64") && (ff.Type == "uint" || ff.Type == "uint64" ||
-								ff.Type == "uint32" || ff.Type == "uint16" || ff.Type == "uint8") {
-								funcBody.WriteString(fmt.Sprintf("\tto.%s = %s(from.%s)\n", tf.Name, tf.Type, ff.Name))
-							} else if tf.Type == "uint32" && (ff.Type == "uint16" || ff.Type == "uint8") {
-								funcBody.WriteString(fmt.Sprintf("\tto.%s = %s(from.%s)\n", tf.Name, tf.Type, ff.Name))
-							} else if tf.Type == "uint16" && ff.Type == "uint8" {
-								funcBody.WriteString(fmt.Sprintf("\tto.%s = %s(from.%s)\n", tf.Name, tf.Type, ff.Name))
-							} else if (tf.Type == "float64" || tf.Type == "float32") && (ff.Type == "float32" || ff.Type == "int" || ff.Type == "int64" || ff.Type == "int32" || ff.Type == "rune" || ff.Type == "int16" || ff.Type == "int8" ||
-								ff.Type == "uint64" || ff.Type == "uint32" || ff.Type == "uint16" || ff.Type == "uint8") {
-								funcBody.WriteString(fmt.Sprintf("\tto.%s = %s(from.%s)\n", tf.Name, tf.Type, ff.Name))
-							}
+						if tf.Name == ff.Name && tf.Array == ff.Array && (tf.Name[0] > 64 && tf.Name[0] < 91 || (!strings.Contains(toName, ".") && !strings.Contains(fromName, "."))) { //可导出或本包不可导出才能拷贝
+							writeField(&funcBody, &imports, pkg.Name, "", tf, ff, st.hasOpt[funName])
 						}
 					}
 				}
@@ -142,14 +117,165 @@ func (c *Carpy) generateCopyFile() {
 			}
 			caseBuf.WriteString(fmt.Sprintf(templateToCase, toName, caseFromBuf.String()))
 		}
+		var importBuf bytes.Buffer
+		for path, name := range imports {
+			importBuf.WriteString(fmt.Sprintf("%s \"%s\"\n", name, path))
+		}
+		buf.WriteString(fmt.Sprintf(templateHeader, pkg.Name, importBuf.String()))
 		buf.WriteString(fmt.Sprintf(templateDecl, name, copyStructName, copyStructName, copyStructName, caseBuf.String()))
 		buf.WriteString(funcBuf.String())
-		println(buf.String())
+		b, err := format.Source(buf.Bytes())
+		if err != nil {
+			return err
+		}
+		println(string(b))
 		println("123")
+	}
+	return nil
+}
+
+func writeField(funcBody *bytes.Buffer, imports *map[string]string, pkgName, structFieldName string, to openapi.Field, from openapi.Field, hasOpt bool) {
+	changeTyp := ""
+	baseFind := false
+	if to.Type == from.Type && (to.MapInfo.Key.Type == "" && from.MapInfo.Value.Type == "" || to.MapInfo.Value.PkgPath == from.MapInfo.Value.PkgPath) {
+		baseFind = true
+	} else if (to.Type == "int" || to.Type == "int64") && ( //以下为整形及浮点的类型强转
+	from.Type == "int" || from.Type == "int64" || from.Type == "int32" || from.Type == "rune" || from.Type == "int16" || from.Type == "int8" ||
+		from.Type == "uint32" || from.Type == "uint16" || from.Type == "uint8") {
+		changeTyp = to.Type
+	} else if (to.Type == "int32") && (from.Type == "rune" || from.Type == "int16" || from.Type == "int8" ||
+		from.Type == "uint16" || from.Type == "uint8") {
+		changeTyp = to.Type
+	} else if to.Type == "int16" && (from.Type == "int8" || from.Type == "uint8") {
+		changeTyp = to.Type
+	} else if (to.Type == "uint" || to.Type == "uint64") && (from.Type == "uint" || from.Type == "uint64" ||
+		from.Type == "uint32" || from.Type == "uint16" || from.Type == "uint8") {
+		changeTyp = to.Type
+	} else if to.Type == "uint32" && (from.Type == "uint16" || from.Type == "uint8") {
+		changeTyp = to.Type
+	} else if to.Type == "uint16" && from.Type == "uint8" {
+		changeTyp = to.Type
+	} else if (to.Type == "float64" || to.Type == "float32") && (from.Type == "float32" || from.Type == "int" || from.Type == "int64" || from.Type == "int32" || from.Type == "rune" || from.Type == "int16" || from.Type == "int8" ||
+		from.Type == "uint64" || from.Type == "uint32" || from.Type == "uint16" || from.Type == "uint8") {
+		changeTyp = to.Type
+	} else if to.Struct != nil && from.Struct != nil { //todo 同为结构体时,字段拷贝
+
+	} else if hasOpt { //类型不同时加载选项
+		toType := to.Type
+		if to.PkgPath != "" && to.Pkg != pkgName { //找到包名
+			if (*imports)[to.PkgPath] == "" {
+				(*imports)[to.PkgPath] = to.Pkg + md5.Encode16(to.PkgPath)
+			}
+			toType = (*imports)[to.PkgPath] + "." + toType
+		}
+		funcBody.WriteString(fmt.Sprintf(templateOption, to.Name, from.Name, from.Name, toType, to.Name, from.Name))
+	}
+	if changeTyp != "" {
+		if to.Array { //数组类型转换处理
+			if to.Ptr {
+				if from.Ptr {
+					funcBody.WriteString(fmt.Sprintf(
+						"if from.%s != nil {\n\t\t"+
+							"from%sArray := make([]*%s, len(from.%s))\n\t\t"+
+							"for i := range from.%s {\n\t\t\t"+
+							"if from.%s[i] != nil {\n\t\t\t\t"+
+							"from%s := %s(*from.%s[i])\n\t\t\t\t"+
+							"from%sArray[i] = &from%s\n\t\t\t}\n\t\t}\n\t\t"+
+							"to.%s = from%sArray\n\t}\n",
+						from.Name,
+						from.Name, changeTyp, from.Name,
+						from.Name,
+						from.Name,
+						from.Name, changeTyp, from.Name,
+						from.Name, from.Name,
+						to.Name, from.Name))
+				} else {
+					funcBody.WriteString(fmt.Sprintf(
+						"\tif from.%s != nil {\n\t\t"+
+							"from%sArray := make([]*%s, len(from.%s))\n\t\t"+
+							"for i := range from.%s {\n\t\t\t"+
+							"from%s := %s(from.%s[i])\n\t\t\t"+
+							"from%sArray[i] = &from%s\n\t\t"+
+							"}\n\t\t"+
+							"to.%s = from%sArray\n\t}\n",
+						from.Name,
+						from.Name, changeTyp, from.Name,
+						from.Name,
+						from.Name, changeTyp, from.Name,
+						from.Name, from.Name,
+						to.Name, from.Name,
+					))
+				}
+			} else {
+				if from.Ptr {
+					funcBody.WriteString(fmt.Sprintf(
+						"\tif from.%s != nil {\n\t\t"+
+							"from%sArray := make([]%s, len(from.%s))\n\t\t"+
+							"for i := range from.%s {\n\t\t\t"+
+							"if from.%s[i]!=nil{\n\t\t\t\t"+
+							"from%s := %s(*from.%s[i])\n\t\t\t\t"+
+							"from%sArray[i] = from%s\n\t\t\t}\n\t\t}\n\t\t"+
+							"to.%s = from%sArray\n\t}\n",
+						from.Name,
+						from.Name, changeTyp, from.Name,
+						from.Name,
+						from.Name,
+						from.Name, changeTyp, from.Name,
+						from.Name, from.Name,
+						to.Name, from.Name))
+				} else {
+					funcBody.WriteString(fmt.Sprintf(
+						"\tif from.%s != nil {\n\t\t"+
+							"from%sArray := make([]%s, len(from.%s))\n\t\t"+
+							"for i := range from.%s {\n\t\t\t"+
+							"from%s := %s(from.%s[i])\n\t\t\t"+
+							"from%sArray[i] = from%s\n\t\t}\n\t\t"+
+							"to.%s = from%sArray\n\t}\n",
+						from.Name,
+						from.Name, changeTyp, from.Name,
+						from.Name,
+						from.Name, changeTyp, from.Name,
+						from.Name, from.Name,
+						to.Name, from.Name))
+				}
+			}
+		} else {
+			if to.Ptr {
+				if from.Ptr {
+					funcBody.WriteString(fmt.Sprintf("\tif from.%s != nil {\n\t\tfrom%s := %s(*from.%s)\n\t\tto.%s = &from%s\n}\n", from.Name, from.Name, changeTyp, from.Name, to.Name, from.Name))
+				} else {
+					funcBody.WriteString(fmt.Sprintf("\tfrom%s := %s(from.%s)\n\tto.%s = &from%s\n", from.Name, changeTyp, from.Name, to.Name, from.Name))
+				}
+			} else {
+				if from.Ptr {
+					funcBody.WriteString(fmt.Sprintf("\tif from.%s != nil {\n\t\tto.%s = %s(*from.%s)\n}", from.Name, to.Name, changeTyp, from.Name))
+				} else {
+					funcBody.WriteString(fmt.Sprintf("\tto.%s = %s(from.%s)\n", to.Name, changeTyp, from.Name))
+				}
+			}
+		}
+	} else if baseFind {
+		if to.Ptr {
+			if from.Ptr {
+				funcBody.WriteString(fmt.Sprintf("\tto.%s = from.%s\n", to.Name, from.Name))
+			} else {
+				funcBody.WriteString(fmt.Sprintf("\tto.%s = &from.%s\n", to.Name, from.Name))
+			}
+		} else {
+			if from.Ptr {
+				funcBody.WriteString(fmt.Sprintf("\tif from.%s != nil {\n\t\tto.%s = *from.%s\n}\n", from.Name, to.Name, from.Name))
+			} else {
+				funcBody.WriteString(fmt.Sprintf("\tto.%s = from.%s\n", to.Name, from.Name))
+			}
+		}
 	}
 }
 
 const templateHeader = `
+// Code generated by cargen. DO NOT EDIT.
+// Code generated by cargen. DO NOT EDIT.
+// Code generated by cargen. DO NOT EDIT.
+
 package %s
 
 import (
@@ -202,19 +328,21 @@ func %s(to *%s, from *%s, opts ...carpy.CopyOption) (err error) {
 
 const templateOption = `
 	for _, opt := range opts {
-		dst, err := opt(to.Count, from.Count)
+		dst, err := opt(to.%s, from.%s)
 		if err != nil {
 			return err
 		}
-		if count, ok := dst.(int32); ok {
-			to.Count = count
+		if %s, ok := dst.(%s); ok {
+			to.%s = %s
+			break
 		}
 	}
 `
 
 type copyStructInfo struct {
-	to   *openapi.Struct
-	from map[string]*openapi.Struct
+	to     *openapi.Struct
+	from   map[string]*openapi.Struct
+	hasOpt map[string]bool
 }
 
 type visitor struct {
@@ -226,21 +354,24 @@ type visitor struct {
 
 type copyStructInfoList []*copyStructInfo
 
-func (c *copyStructInfoList) append(to *openapi.Struct, from *openapi.Struct) {
+func (c *copyStructInfoList) append(to *openapi.Struct, from *openapi.Struct, hasOpt bool) {
 	funcName := "Copy" + from.Name + "To" + to.Name + md5.Encode16(to.Pkg.Path+from.Pkg.Path)
 	if len(*c) == 0 {
-		*c = append(*c, &copyStructInfo{to: to, from: map[string]*openapi.Struct{funcName: from}})
+		*c = append(*c, &copyStructInfo{to: to, from: map[string]*openapi.Struct{funcName: from}, hasOpt: map[string]bool{funcName: hasOpt}})
 	} else {
 		find := false
 		for i := range *c {
 			if (*c)[i].to.Name == to.Name && (*c)[i].to.Pkg.Name == to.Pkg.Name && (*c)[i].to.Pkg.Path == to.Pkg.Path {
 				(*c)[i].from[funcName] = from
+				if !(*c)[i].hasOpt[funcName] && hasOpt {
+					(*c)[i].hasOpt[funcName] = hasOpt
+				}
 				find = true
 				break
 			}
 		}
 		if !find {
-			*c = append(*c, &copyStructInfo{to: to, from: map[string]*openapi.Struct{funcName: from}})
+			*c = append(*c, &copyStructInfo{to: to, from: map[string]*openapi.Struct{funcName: from}, hasOpt: map[string]bool{funcName: hasOpt}})
 		}
 	}
 }
@@ -255,9 +386,9 @@ func (v *visitor) Visit(n ast.Node) ast.Visitor {
 		if selector, ok := call.Fun.(*ast.SelectorExpr); ok {
 			if ident, ok := selector.X.(*ast.Ident); ok {
 				if ident.Name == v.name && selector.Sel.Name == InterfaceName {
-					to, from := v.GetCallArgsInfo(call.Args)
+					to, from, hasOpt := v.GetCallArgsInfo(call.Args)
 					if to != nil && from != nil {
-						v.structs.append(to, from)
+						v.structs.append(to, from, hasOpt)
 					}
 				}
 			}
@@ -269,9 +400,12 @@ func (v *visitor) Visit(n ast.Node) ast.Visitor {
 	return v
 }
 
-func (v *visitor) GetCallArgsInfo(args []ast.Expr) (to *openapi.Struct, from *openapi.Struct) {
+func (v *visitor) GetCallArgsInfo(args []ast.Expr) (to *openapi.Struct, from *openapi.Struct, hasOpt bool) {
 	if len(args) < 2 {
 		return
+	}
+	if len(args) > 2 {
+		hasOpt = true
 	}
 	for i, arg := range args {
 		if i > 1 {

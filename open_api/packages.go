@@ -113,6 +113,12 @@ func (pkgs *Packages) FillPkgRelationStruct() {
 				if !baseTypes.CheckIn(fd.Type) {
 					(*pkgs)[i].Structs[is].Fields[id].Struct = pkgs.FindStructPtr(fd.PkgPath, fd.Pkg, fd.Type)
 				}
+				if !baseTypes.CheckIn(fd.MapInfo.Key.Type) {
+					(*pkgs)[i].Structs[is].Fields[id].MapInfo.Key.Struct = pkgs.FindStructPtr(fd.MapInfo.Key.PkgPath, fd.MapInfo.Key.Pkg, fd.MapInfo.Key.Type)
+				}
+				if !baseTypes.CheckIn(fd.MapInfo.Value.Type) {
+					(*pkgs)[i].Structs[is].Fields[id].MapInfo.Value.Struct = pkgs.FindStructPtr(fd.MapInfo.Value.PkgPath, fd.MapInfo.Value.Pkg, fd.MapInfo.Value.Type)
+				}
 			}
 		}
 	}

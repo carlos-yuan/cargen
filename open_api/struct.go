@@ -164,6 +164,12 @@ func (sct *Struct) FieldFromAstField(fd *ast.Field) Field {
 	if f.Pkg != "" {
 		f.PkgPath = sct.Imports[f.Pkg]
 	}
+	if f.MapInfo.Key.Pkg != "" {
+		f.MapInfo.Key.PkgPath = sct.Imports[f.MapInfo.Key.Pkg]
+	}
+	if f.MapInfo.Value.Pkg != "" {
+		f.MapInfo.Value.PkgPath = sct.Imports[f.MapInfo.Value.Pkg]
+	}
 	if fd.Tag != nil {
 		f.Tag = fd.Tag.Value
 		f.In, f.ParamName, f.Validate = GetTagInfo(f.Tag)

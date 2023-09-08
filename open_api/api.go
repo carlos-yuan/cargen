@@ -610,13 +610,36 @@ func GetExprInfo(expr ast.Expr) Field {
 	case *ast.SelectorExpr:
 		return Field{Type: exp.Sel.Name, Pkg: exp.X.(*ast.Ident).Name}
 	case *ast.StarExpr:
-		return GetExprInfo(exp.X)
+		f := GetExprInfo(exp.X)
+		f.Ptr = true
+		return f
 	case *ast.ArrayType:
 		f := GetExprInfo(exp.Elt)
 		f.Array = true
 		return f
 	case *ast.SliceExpr:
 		return GetExprInfo(exp.X)
+	case *ast.MapType:
+		fKey := GetExprInfo(exp.Key)
+		fValue := GetExprInfo(exp.Value)
+		typ := "map["
+		if fKey.Pkg != "" {
+			typ = typ + fKey.Pkg + "."
+		}
+		typ = typ + fKey.Type + "]"
+		if fValue.Pkg != "" {
+			typ = typ + fValue.Pkg + "."
+		}
+		typ = typ + fValue.Type
+		return Field{Type: typ, MapInfo: MapInfo{Key: MapField{
+			Type:    fKey.Type,
+			Pkg:     fKey.Pkg,
+			PkgPath: fKey.PkgPath,
+		}, Value: MapField{
+			Type:    fValue.Type,
+			Pkg:     fValue.Pkg,
+			PkgPath: fValue.PkgPath,
+		}}}
 	case *ast.UnaryExpr:
 		return GetExprInfo(exp.X)
 	case *ast.StructType:
