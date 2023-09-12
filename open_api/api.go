@@ -39,14 +39,16 @@ func (a *Api) GetApiPath() string {
 
 func (a *Api) GetRequestPath() string {
 	prefix := "/"
-	if a.sct.Pkg.config != nil && len(a.sct.Pkg.config.Web.Prefix) > 0 {
-		if a.sct.Pkg.config.Web.Prefix[0] != '/' {
-			prefix += a.sct.Pkg.config.Web.Prefix
+	modName := a.sct.Pkg.Path[:strings.Index(a.sct.Pkg.Path, "/")] //mod名称
+	if a.sct.Pkg.config != nil && len(a.sct.Pkg.config.Web) > 0 && a.sct.Pkg.config.Web[modName].Prefix != "" {
+		webPrefix := a.sct.Pkg.config.Web[modName].Prefix
+		if webPrefix[0] != '/' {
+			prefix += webPrefix
 		} else {
-			prefix = a.sct.Pkg.config.Web.Prefix
+			prefix = webPrefix
 		}
 	}
-	prefix += a.sct.Pkg.Path[:strings.Index(a.sct.Pkg.Path, "/")+1]          //包名
+	prefix += modName + "/"
 	name := convert.FistToLower(a.Group) + "/" + convert.FistToLower(a.Name) //结构体名+方法名
 	if a.RequestPath != "" {
 		if a.RequestPath == "-" {
