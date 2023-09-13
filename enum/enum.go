@@ -87,6 +87,8 @@ import (
 	"regexp"
 	"strconv"
 )
+
+var re = regexp.MustCompile("\"key\"([\\s]?):([\\s]?)([\\d]+)([\\s]?),")
 `
 
 const enumConstTemplate = `	%s %s= %d
@@ -115,8 +117,7 @@ func (t %s) MarshalJSON() ([]byte, error) {
 }
 
 func (t *%s) UnmarshalJSON(data []byte) error {
-    regexp := regexp.MustCompile("\"key\"([\\s]?):([\\s]?)([\\d]+)([\\s]?),")
-	res := regexp.FindStringSubmatch(string(data))
+	res := re.FindStringSubmatch(string(data))
 	var em int64
 	if len(res)==5{
 		em,_=strconv.ParseInt(res[3],10,64)
