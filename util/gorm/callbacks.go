@@ -32,36 +32,72 @@ func RegisterCallbacks(db *gorm.DB) error {
 // CreateCallback 自定义创建时间标记
 func CreateCallback(db *gorm.DB) {
 	if db.Error == nil && db.Statement.Schema != nil && !db.Statement.SkipHooks {
-		field := db.Statement.Schema.LookUpField("CreatedAt")
-		if field != nil && field.FieldType.Kind() == reflect.Int64 {
-			err := field.Set(db.Statement.Context, reflect.Indirect(db.Statement.ReflectValue), cartime.NowToInt())
-			if err != nil {
-				db.AddError(err)
+		createAtField := db.Statement.Schema.LookUpField("CreatedAt")
+		updatedAtField := db.Statement.Schema.LookUpField("UpdatedAt")
+		now := cartime.NowToInt()
+		switch db.Statement.ReflectValue.Kind() {
+		case reflect.Slice, reflect.Array:
+			for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
+				v := reflect.Indirect(db.Statement.ReflectValue.Index(i))
+				if v.Kind() == reflect.Struct {
+					if createAtField != nil && createAtField.FieldType.Kind() == reflect.Int64 {
+						err := createAtField.Set(db.Statement.Context, db.Statement.ReflectValue.Index(i), now)
+						if err != nil {
+							db.AddError(err)
+						}
+					}
+					if updatedAtField != nil && updatedAtField.FieldType.Kind() == reflect.Int64 {
+						err := updatedAtField.Set(db.Statement.Context, db.Statement.ReflectValue.Index(i), now)
+						if err != nil {
+							db.AddError(err)
+						}
+					}
+				}
 			}
-		} else {
-			callbacks.BeforeCreate(db)
+		case reflect.Struct:
+			if createAtField != nil && createAtField.FieldType.Kind() == reflect.Int64 {
+				err := createAtField.Set(db.Statement.Context, db.Statement.ReflectValue, now)
+				if err != nil {
+					db.AddError(err)
+				}
+			}
+			if updatedAtField != nil && updatedAtField.FieldType.Kind() == reflect.Int64 {
+				err := updatedAtField.Set(db.Statement.Context, db.Statement.ReflectValue, now)
+				if err != nil {
+					db.AddError(err)
+				}
+			}
 		}
+
+	} else {
+		callbacks.BeforeCreate(db)
 	}
 }
 
 // UpdateCallback 自定义更新时间标记
 func UpdateCallback(db *gorm.DB) {
 	if db.Error == nil && db.Statement.Schema != nil && !db.Statement.SkipHooks {
-		field := db.Statement.Schema.LookUpField("UpdatedAt")
-		if field != nil && field.FieldType.Kind() == reflect.Int64 {
-			field.AutoUpdateTime = 0
-			err := field.Set(db.Statement.Context, reflect.Indirect(db.Statement.ReflectValue), cartime.NowToInt())
-			if err != nil {
-				db.AddError(err)
-			}
-			field := db.Statement.Schema.LookUpField("DeletedAt")
-			if field != nil && field.FieldType.Kind() == reflect.Int64 {
-				if conds := db.Statement.BuildCondition("`" + db.Statement.Table + "`" + ".`deleted_at`=0"); len(conds) > 0 {
-					db.Statement.AddClause(clause.Where{Exprs: conds})
+		updatedAtField := db.Statement.Schema.LookUpField("UpdatedAt")
+		switch db.Statement.ReflectValue.Kind() {
+		case reflect.Slice, reflect.Array:
+			for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
+				v := reflect.Indirect(db.Statement.ReflectValue.Index(i))
+				if v.Kind() == reflect.Struct {
+					if updatedAtField != nil && updatedAtField.FieldType.Kind() == reflect.Int64 {
+						err := updatedAtField.Set(db.Statement.Context, db.Statement.ReflectValue.Index(i), cartime.NowToInt())
+						if err != nil {
+							db.AddError(err)
+						}
+					}
 				}
 			}
-		} else {
-			callbacks.BeforeUpdate(db)
+		case reflect.Struct:
+			if updatedAtField != nil && updatedAtField.FieldType.Kind() == reflect.Int64 {
+				err := updatedAtField.Set(db.Statement.Context, db.Statement.ReflectValue, cartime.NowToInt())
+				if err != nil {
+					db.AddError(err)
+				}
+			}
 		}
 	}
 }

@@ -2,23 +2,28 @@ package cartime
 
 import (
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/carlos-yuan/cargen/util/convert"
 )
 
-const timeFormat = "20060102150405.000Z07:00"
+const timeFormat = "20060102150405.000Z07"
 
 const DefaultFormat = "2006-01-02 15:04:05"
 const DefaultFormatDate = "2006-01-02"
 
 func NowToInt() int64 {
-	format := time.Now().Format(timeFormat)
+	return toInt(time.Now().Format(timeFormat))
+}
+
+func toInt(format string) int64 {
 	var timebytes = make([]byte, 0, 19)
 	timebytes = append(timebytes, format[:14]...)
-	timebytes = append(timebytes, format[15:16]...)
-	timebytes = append(timebytes, format[19:21]...)
-	timebytes = append(timebytes, format[22:24]...)
+	timebytes = append(timebytes, format[15:18]...)
+	if len(format) > 20 {
+		timebytes = append(timebytes, format[19:21]...)
+	}
 	intTime, _ := strconv.ParseInt(convert.Bytes2str(timebytes), 10, 64)
 	return intTime
 }
@@ -28,42 +33,17 @@ func StrToInt(str, layout string) int64 {
 	if err != nil {
 		return 0
 	}
-	format := t.Format(timeFormat)
-	var timebytes = make([]byte, 0, 19)
-	timebytes = append(timebytes, format[:14]...)
-	timebytes = append(timebytes, format[15:16]...)
-	if len(format) == 19 {
-		t = time.Now()
-		_, o := t.Zone()
-		hour := o / 3600
-		if hour >= 10 {
-			hourStr := strconv.Itoa(hour)
-			timebytes = append(timebytes, hourStr[0])
-			timebytes = append(timebytes, hourStr[1])
-		} else {
-			timebytes = append(timebytes, '0', strconv.Itoa(hour)[0])
-		}
-		min := o % 3600 / 60
-		if min >= 10 {
-			minStr := strconv.Itoa(min)
-			timebytes = append(timebytes, minStr[0])
-			timebytes = append(timebytes, minStr[1])
-		} else {
-			timebytes = append(timebytes, '0', strconv.Itoa(min)[0])
-		}
-	} else {
-		timebytes = append(timebytes, format[19:21]...)
-		timebytes = append(timebytes, format[22:24]...)
+	if t.Location() == nil || !strings.Contains(layout, "Z07") { //时间如果没有时区信息，默认加载本地时区
+		t = t.In(time.Local)
 	}
-	intTime, _ := strconv.ParseInt(convert.Bytes2str(timebytes), 10, 64)
-	return intTime
+	return toInt(t.Format(timeFormat))
 }
 
 func IntToStr(t int64, layout string) string {
 	str := strconv.Itoa(int(t))
 	var timebytes = make([]byte, 0, 24)
 	timebytes = append(timebytes, str[:14]...)
-	timebytes = append(timebytes, '.', str[14], '0', '0', '+', str[15], str[16], ':', str[17], str[18])
+	timebytes = append(timebytes, '.', str[14], str[15], str[16], '+', str[17], str[18])
 	ct, err := time.Parse(timeFormat, convert.Bytes2str(timebytes))
 	if err != nil {
 		return ""
