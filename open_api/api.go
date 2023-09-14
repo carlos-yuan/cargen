@@ -734,6 +734,8 @@ func (a *Api) FillResponse(method *Method) {
 				}
 				if name == "" {
 					name = a.Group + "." + a.Name + "Rsp"
+				} else {
+					name = a.Group + "." + a.Name
 				}
 				schemaName += name
 				method.api.Components.Schemas[name] = pp
