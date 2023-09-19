@@ -86,7 +86,7 @@ func (c *GinControllerContext) CheckToken(tk Token) {
 	if tk == nil {
 		panic(e.AuthorizeError.SetErr(errors.New("token instance not set")))
 	}
-	c.token = tk
+	c.token = tk.Clone()
 	token, err := c.tokenFromHeader(c.token.GetConfig().HeaderName, c.token.GetConfig().HeaderType)
 	if err != nil {
 		if err != ErrEmptyAuthHeader {
