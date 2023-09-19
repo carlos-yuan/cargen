@@ -120,6 +120,16 @@ type WarpErr struct {
 	Error Err
 }
 
-func (e WarpErr) Err(err error, msg ...string) Err {
-	return e.Error.SetErr(err, msg...)
+func (e WarpErr) Err(args ...any) Err {
+	if len(args) == 2 {
+		return e.Error.SetErr(args[0].(error), args[1].(string))
+	} else if len(args) == 1 {
+		msg, ok := args[0].(string)
+		if ok {
+			return e.Error.SetErr(nil, msg)
+		} else {
+			return e.Error.SetErr(args[0].(error))
+		}
+	}
+	return e.Error
 }

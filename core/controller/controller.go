@@ -69,24 +69,36 @@ func (r *Result) SuccessIn(to any, from any) *Result {
 }
 
 // Err 错误返回
-func (r *Result) Err(err error, msg ...string) *Result {
+func (r *Result) Err(args ...any) *Result {
+	var err error
+	var msg string
+	if len(args) == 2 {
+		err = args[0].(error)
+		msg = args[1].(string)
+	} else if len(args) == 1 {
+		var ok bool
+		msg, ok = args[0].(string)
+		if !ok {
+			err = args[0].(error)
+		}
+	}
 	if err != nil {
 		if errors.As(err, &r.err) {
 			r.err = err.(e.Err)
-			if len(msg) == 1 {
-				r.Msg = msg[0]
+			if msg != "" {
+				r.Msg = msg
 				r.Data = err.Error()
 			} else {
 				r.Msg = r.err.Error()
 			}
 		} else {
-			r.err = r.err.SetErr(err, msg...)
+			r.err = r.err.SetErr(err, msg)
 			r.Data = err.Error()
 			r.Msg = r.err.Error()
 		}
 	} else {
-		if len(msg) == 1 {
-			r.Msg = msg[0]
+		if msg != "" {
+			r.Msg = msg
 		}
 	}
 	r.Code = 500
