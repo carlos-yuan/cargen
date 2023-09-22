@@ -11,6 +11,7 @@ type Token interface {
 }
 
 type Payload interface {
+	Clone() Payload
 	ToBytes() []byte
 	FromBytes(from []byte) error
 	Expire() int64

@@ -56,7 +56,7 @@ func GenEnum(path, dictTable, dictType, dictName, dictLabel, dictValue, dsn stri
 				panic(err)
 			}
 			constName := d.Type + d.Name
-			constCode += fmt.Sprintf(enumConstTemplate, constName, key, val)
+			constCode += fmt.Sprintf(enumConstTemplate, constName, key, val, d.Label)
 			caseCode += fmt.Sprintf(enumCaseTemplate, constName, strings.ReplaceAll(d.Label, `"`, `\"`))
 		}
 		if len(caseCode) > 0 {
@@ -91,7 +91,7 @@ import (
 var re = regexp.MustCompile("\"key\"([\\s]?):([\\s]?)([\\d]+)([\\s]?),")
 `
 
-const enumConstTemplate = `	%s %s= %d
+const enumConstTemplate = `	%s %s= %d \\%s
 `
 
 const enumCaseTemplate = `	case %s:

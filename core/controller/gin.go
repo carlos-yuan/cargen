@@ -84,12 +84,14 @@ func (c *GinControllerContext) Bind(params any, opts ...BindOption) {
 
 func (c *GinControllerContext) CheckToken(tk Token) {
 	if tk == nil {
+		println("1......token instance not set")
 		panic(e.AuthorizeError.SetErr(errors.New("token instance not set")))
 	}
 	c.token = tk.Clone()
 	token, err := c.tokenFromHeader(c.token.GetConfig().HeaderName, c.token.GetConfig().HeaderType)
 	if err != nil {
 		if err != ErrEmptyAuthHeader {
+			println("2......" + err.Error())
 			panic(e.AuthorizeError.SetErr(err))
 		}
 		if c.token.GetConfig().CookieName != "" {
@@ -97,14 +99,17 @@ func (c *GinControllerContext) CheckToken(tk Token) {
 		}
 	}
 	if err != nil {
+		println("3......" + err.Error())
 		panic(e.AuthorizeError.SetErr(err))
 	}
 	err = c.token.Verify(token)
 	if err != nil {
+		println("4......" + err.Error())
 		panic(e.AuthorizeError.SetErr(err))
 	}
 	pl := c.token.GetPayLoad()
 	if pl.Expire() < timeUtil.Milli() {
+		println("5......AuthorizeTimeOutError")
 		panic(e.AuthorizeTimeOutError)
 	}
 }
