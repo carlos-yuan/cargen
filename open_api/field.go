@@ -1,10 +1,10 @@
 package openapi
 
 import (
+	"github.com/carlos-yuan/cargen/util/doc"
 	"reflect"
 	"strings"
 
-	"github.com/carlos-yuan/cargen/util"
 	"github.com/carlos-yuan/cargen/util/convert"
 )
 
@@ -72,7 +72,7 @@ func GetTagInfo(fieldTag string) (tag, name, validate string) {
 		val := st.Get(tagParam)
 		if val != "" {
 			if name == "" {
-				tagName := util.GetTagName(val)
+				tagName := doc.GetTagName(val)
 				if tagName != "" && tagName != "-" { //json偶尔不需要序列化时，可能造成参数生成错误
 					name = tagName
 					tag = tagParam

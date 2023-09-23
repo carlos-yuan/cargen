@@ -1,12 +1,12 @@
 package gen
 
 import (
+	"github.com/carlos-yuan/cargen/util/doc"
 	"strings"
 	"time"
 
 	"github.com/carlos-yuan/cargen/enum"
 	openapi "github.com/carlos-yuan/cargen/open_api"
-	"github.com/carlos-yuan/cargen/util"
 	"github.com/carlos-yuan/cargen/util/fileUtil"
 )
 
@@ -67,7 +67,7 @@ func (c Config) Build() {
 		ConfigGen(c.Path)
 	}
 	if c.Path != "" {
-		util.GoFmt(c.Path)
+		doc.GoFmt(c.Path)
 	}
 	println("Generation time:", time.Now().UnixMilli()-start)
 }

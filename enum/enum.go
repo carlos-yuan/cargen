@@ -3,15 +3,14 @@ package enum
 import (
 	"bytes"
 	"fmt"
+	"github.com/carlos-yuan/cargen/util/convert"
+	"github.com/carlos-yuan/cargen/util/fileUtil"
+	"github.com/carlos-yuan/cargen/util/set"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
 	"sort"
 	"strconv"
 	"strings"
-
-	"github.com/carlos-yuan/cargen/util"
-	"github.com/carlos-yuan/cargen/util/convert"
-	"github.com/carlos-yuan/cargen/util/fileUtil"
-	"gorm.io/driver/mysql"
-	"gorm.io/gorm"
 )
 
 func GenEnum(path, dictTable, dictType, dictName, dictLabel, dictValue, dsn string) {
@@ -39,7 +38,7 @@ func GenEnum(path, dictTable, dictType, dictName, dictLabel, dictValue, dsn stri
 		typ := convert.ToCamelCase(strings.TrimSpace(m[dictType].(string)))
 		dicts[typ] = append(dicts[typ], Dict{Type: typ, Name: convert.ToCamelCase(strings.TrimSpace(m[dictName].(string))), Label: strings.TrimSpace(m[dictLabel].(string)), Value: strings.TrimSpace(m[dictValue].(string))})
 	}
-	keys := util.MapToSplice(dicts)
+	keys := set.MapToSplice(dicts)
 	sort.Slice(keys, func(i, j int) bool {
 		return strings.Compare(keys[i], keys[j]) == -1
 	})
