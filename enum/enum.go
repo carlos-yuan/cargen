@@ -91,7 +91,7 @@ import (
 var re = regexp.MustCompile("\"key\"([\\s]?):([\\s]?)([\\d]+)([\\s]?),")
 `
 
-const enumConstTemplate = `	%s %s= %d \\%s
+const enumConstTemplate = `	%s %s= %d //%s
 `
 
 const enumCaseTemplate = `	case %s:
