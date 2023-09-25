@@ -1,4 +1,4 @@
-package util
+package doc
 
 import (
 	"go/ast"

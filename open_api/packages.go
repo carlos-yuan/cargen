@@ -2,6 +2,7 @@ package openapi
 
 import (
 	"encoding/json"
+	"github.com/carlos-yuan/cargen/util/doc"
 	"io/fs"
 	"log"
 	"os"
@@ -9,7 +10,6 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/carlos-yuan/cargen/util"
 	"github.com/carlos-yuan/cargen/util/fileUtil"
 	"golang.org/x/mod/modfile"
 )
@@ -82,7 +82,7 @@ func (pkgs *Packages) InitPackages(base string) {
 }
 
 func (pkgs *Packages) GenPackage(pkgPath, path string) []*Package {
-	astPkg, err := util.GetPackages(path)
+	astPkg, err := doc.GetPackages(path)
 	if err != nil {
 		fserr, ok := err.(*fs.PathError)
 		if ok {
