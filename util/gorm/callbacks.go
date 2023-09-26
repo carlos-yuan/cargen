@@ -2,6 +2,7 @@ package gormutil
 
 import (
 	"reflect"
+	"time"
 
 	"github.com/carlos-yuan/cargen/util/cartime"
 	"gorm.io/gorm"
@@ -9,8 +10,12 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-func RegisterCallbacks(db *gorm.DB) error {
-	err := db.Callback().Create().Replace("gorm:before_create", CreateCallback)
+// RegisterCartimeCallbacks cartime注入 替换掉原来的时间戳
+func RegisterCartimeCallbacks(db *gorm.DB) error {
+	db.NowFunc = func() time.Time { //注入cartime
+		return time.Unix(cartime.NowToInt(), 0)
+	}
+	err := db.Callback().Query().Before("gorm:query").Register("find_not_delete", QueryCallback)
 	if err != nil {
 		return err
 	}
@@ -22,56 +27,7 @@ func RegisterCallbacks(db *gorm.DB) error {
 	if err != nil {
 		return err
 	}
-	err = db.Callback().Query().Before("gorm:query").Register("find_not_delete", QueryCallback)
-	if err != nil {
-		return err
-	}
 	return nil
-}
-
-// CreateCallback 自定义创建时间标记
-func CreateCallback(db *gorm.DB) {
-	if db.Error == nil && db.Statement.Schema != nil && !db.Statement.SkipHooks {
-		createAtField := db.Statement.Schema.LookUpField("CreatedAt")
-		updatedAtField := db.Statement.Schema.LookUpField("UpdatedAt")
-		now := cartime.NowToInt()
-		switch db.Statement.ReflectValue.Kind() {
-		case reflect.Slice, reflect.Array:
-			for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
-				v := reflect.Indirect(db.Statement.ReflectValue.Index(i))
-				if v.Kind() == reflect.Struct {
-					if createAtField != nil && createAtField.FieldType.Kind() == reflect.Int64 {
-						err := createAtField.Set(db.Statement.Context, db.Statement.ReflectValue.Index(i), now)
-						if err != nil {
-							db.AddError(err)
-						}
-					}
-					if updatedAtField != nil && updatedAtField.FieldType.Kind() == reflect.Int64 {
-						err := updatedAtField.Set(db.Statement.Context, db.Statement.ReflectValue.Index(i), now)
-						if err != nil {
-							db.AddError(err)
-						}
-					}
-				}
-			}
-		case reflect.Struct:
-			if createAtField != nil && createAtField.FieldType.Kind() == reflect.Int64 {
-				err := createAtField.Set(db.Statement.Context, db.Statement.ReflectValue, now)
-				if err != nil {
-					db.AddError(err)
-				}
-			}
-			if updatedAtField != nil && updatedAtField.FieldType.Kind() == reflect.Int64 {
-				err := updatedAtField.Set(db.Statement.Context, db.Statement.ReflectValue, now)
-				if err != nil {
-					db.AddError(err)
-				}
-			}
-		}
-
-	} else {
-		callbacks.BeforeCreate(db)
-	}
 }
 
 // UpdateCallback 自定义更新时间标记
