@@ -271,7 +271,7 @@ func (r *Decorator) GetSetObjRefKey(key string, obj interface{}, expire time.Dur
 	return err
 }
 
-func (r *Decorator) Limit(key string, time, count int32) (bool, error) {
+func (r *Decorator) Limit(key string, duration time.Duration, count int32) (bool, error) {
 	res, err := r.Eval(
 		"local times = redis.call('incr',KEYS[1])"+
 			" if times == 1 then"+
@@ -280,7 +280,7 @@ func (r *Decorator) Limit(key string, time, count int32) (bool, error) {
 			"  if times > tonumber(ARGV[2]) then"+
 			"    return 0"+
 			"  end"+
-			" return 1", []string{key}, []string{strconv.Itoa(int(time)), strconv.Itoa(int(count))}).Int64()
+			" return 1", []string{key}, []string{strconv.Itoa(int(duration / time.Second)), strconv.Itoa(int(count))}).Int64()
 	if err == nil {
 		if res == 1 {
 			return true, nil
