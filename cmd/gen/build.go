@@ -64,7 +64,7 @@ func (c Config) Build() {
 	case GenEnum:
 		enum.GenEnum(c.Path, c.DictTable, c.DictType, c.DictName, c.DictLabel, c.DictValue, c.DbDsn)
 	case GenConfig:
-		ConfigGen(c.Path)
+		ConfigGen(c.Path, c.Name, c.Out)
 	}
 	if c.Path != "" {
 		doc.GoFmt(c.Path)

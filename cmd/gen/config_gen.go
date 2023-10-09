@@ -16,9 +16,15 @@ const (
 	ConfigEncryptFileName = "config.yaml"
 )
 
-func ConfigGen(genPath string) {
+func ConfigGen(genPath string, configFileName string, configEncryptFileName string) {
+	if configFileName == "" {
+		configFileName = ConfigFileName
+	}
+	if configEncryptFileName == "" {
+		configEncryptFileName = ConfigEncryptFileName
+	}
 	err := filepath.Walk(genPath, func(path string, info os.FileInfo, err error) error {
-		if info.Name() == ConfigFileName {
+		if info.Name() == configFileName {
 			b, err := fileUtil.ReadAll(path)
 			if err != nil {
 				log.Fatal(err)
@@ -44,7 +50,7 @@ func ConfigGen(genPath string) {
 			if err != nil {
 				panic(err)
 			}
-			out = out + string(os.PathSeparator) + ConfigEncryptFileName
+			out = out + string(os.PathSeparator) + configEncryptFileName
 			err = fileUtil.WriteStringFile(out, string(b))
 			if err != nil {
 				panic(err)
