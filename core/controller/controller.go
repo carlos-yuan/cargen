@@ -25,6 +25,10 @@ type ControllerContext interface {
 	SetContext(context.Context) ControllerContext
 	// GetContext 获得上下文
 	GetContext() context.Context
+	// 设置加密方法
+	SetEncryption(func(ctx ControllerContext, data any) (any, error))
+	// 成功返回统一接口
+	Success(data any) *Result
 }
 
 // Result 统一返回体
@@ -34,13 +38,6 @@ type Result struct {
 	Data      any    `json:"data"`      //返回数据
 	RequestId string `json:"requestId"` //请求编号链路中来
 	err       e.Err
-}
-
-// Success 成功返回
-func (r *Result) Success(data any) *Result {
-	r.Data = data
-	r.Code = 200
-	return r
 }
 
 // String 成功返回字符串

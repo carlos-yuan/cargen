@@ -44,8 +44,29 @@ var _ ControllerContext = &GinControllerContext{}
 // GinControllerContext gin 请求体接口实现
 type GinControllerContext struct {
 	*gin.Context
-	conf  *config.Web
-	token Token
+	conf       *config.Web
+	token      Token
+	Encryption func(ctx ControllerContext, data any) (any, error)
+}
+
+func (c *GinControllerContext) SetEncryption(f func(ctx ControllerContext, data any) (any, error)) {
+	c.Encryption = f
+}
+
+func (c *GinControllerContext) Success(data any) *Result {
+	var res Result
+	if c.Encryption != nil {
+		var err error
+		res.Data, err = c.Encryption(c, data)
+		if err != nil {
+			res.Err(err)
+			return &res
+		}
+	} else {
+		res.Data = data
+	}
+	res.Code = 200
+	return &res
 }
 
 func (c *GinControllerContext) Bind(params any, opts ...BindOption) {
@@ -105,6 +126,11 @@ func (c *GinControllerContext) CheckToken(tk Token) {
 	err = c.token.Verify(token)
 	if err != nil {
 		println("4......" + err.Error())
+		panic(e.AuthorizeError.SetErr(err))
+	}
+	c.Request.Body, err = c.token.Decrypt(c.Request.Body)
+	if err != nil {
+		println("5......" + err.Error())
 		panic(e.AuthorizeError.SetErr(err))
 	}
 	pl := c.token.GetPayLoad()

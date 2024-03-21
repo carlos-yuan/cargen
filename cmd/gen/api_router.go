@@ -102,7 +102,6 @@ import (
 	ctl "github.com/carlos-yuan/cargen/core/controller"
 	"github.com/carlos-yuan/cargen/util/convert"
 	"github.com/gin-gonic/gin"
-	"strings"
 %s
 )
 
@@ -110,7 +109,7 @@ func init() {
 	err := config.Container.Invoke(func(t *%s, c *config.Config) {
 		mod, name := convert.GetStructModAndName(t)
 		t.ControllerContext = ctl.NewGinContext(c.Web[mod])
-		prefix := c.Web[mod].Prefix + strings.ToLower(mod) + "/" + convert.FistToLower(name)
+		prefix := c.Web[mod].Prefix + mod + "/" + convert.FistToLower(name)
 		routerList = append(routerList,
 %s
 		)
