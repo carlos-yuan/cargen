@@ -131,13 +131,22 @@ func (pkgs *Packages) GetApi() OpenAPI {
 	for _, p := range *pkgs {
 		for _, s := range p.Structs {
 			if len(s.Api) > 0 {
-				apiTags[s.Name] = Tag{Name: s.Name, Description: s.Des}
+				ps := strings.Split(s.Pkg.ModPath, string(os.PathSeparator))
+				tag := s.Name
+				for i := len(ps) - 1; i >= 0; i-- {
+					if ps[i] == "api" {
+						break
+					}
+					tag = ps[i] + "-" + tag
+				}
+
+				apiTags[tag] = Tag{Name: tag, Description: s.Des}
 				for _, a := range s.Api {
 					name := a.GetRequestPath()
 					if api.Paths[name] == nil {
 						api.Paths[name] = make(map[string]Method)
 					}
-					method := Method{Tags: []string{s.Name}, OperationId: a.GetOperationId(), Summary: a.Summary, api: &api}
+					method := Method{Tags: []string{tag}, OperationId: a.GetOperationId(), Summary: a.Summary, api: &api}
 					a.FillRequestParams(&method)
 					a.FillResponse(&method)
 					a.FillSecurity(&method)

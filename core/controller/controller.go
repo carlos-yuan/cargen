@@ -3,7 +3,6 @@ package ctl
 import (
 	"context"
 	"errors"
-
 	e "github.com/carlos-yuan/cargen/core/error"
 
 	"github.com/jinzhu/copier"
@@ -19,6 +18,8 @@ type ControllerContext interface {
 	GetHeader(key string) string
 	// SetHeader 设置header
 	SetHeader(key, val string)
+	// GetRequestInfo 获取请求方法，和链接地址
+	GetRequestInfo() (method, url string)
 	// Bind 绑定参数 该方法出错会panic 并被panic handler拦截
 	Bind(params any, bindings ...BindOption)
 	// SetContext 设置web框架的上下文对象

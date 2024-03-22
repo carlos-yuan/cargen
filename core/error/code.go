@@ -21,6 +21,8 @@ const (
 	RPCServerErrorCode = 1006
 
 	AuthorizeTimeOutErrorCode = 1007
+
+	NoPermissionErrorCode = 1008
 )
 
 // 控制器处理出错 错误码
@@ -35,6 +37,8 @@ var (
 
 	AuthorizeTimeOutError = Err{Code: AuthorizeErrorCode}
 
+	NoPermissionError = Err{Code: NoPermissionErrorCode}
+
 	InternalServerError = Err{Code: InternalServerErrorCode}
 
 	RPCClientErrorCodeError = Err{Code: RPCClientErrorCode}
@@ -47,6 +51,7 @@ var codeNameMap map[int]string = map[int]string{
 	RPCClientErrorCode:        "服务连接错误:",
 	AuthorizeErrorCode:        "授权校验失败:",
 	AuthorizeTimeOutErrorCode: "授权失效:",
+	NoPermissionErrorCode:     "没有权限",
 }
 
 var codeNameMutex sync.Mutex

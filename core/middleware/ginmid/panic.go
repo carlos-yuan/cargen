@@ -23,6 +23,9 @@ func Panic() gin.HandlerFunc {
 					case e.ParamsDealErrorCode, e.ParamsValidatorErrorCode:
 						c.JSON(400, err)
 						return
+					case e.NoPermissionErrorCode:
+						c.JSON(403, err)
+						return
 					}
 				}
 				println(string(debug.Stack()))

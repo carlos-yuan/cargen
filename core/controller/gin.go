@@ -49,6 +49,10 @@ type GinControllerContext struct {
 	Encryption func(ctx ControllerContext, data any) (any, error)
 }
 
+func (c *GinControllerContext) GetRequestInfo() (method, url string) {
+	return c.Request.Method, c.FullPath()
+}
+
 func (c *GinControllerContext) SetEncryption(f func(ctx ControllerContext, data any) (any, error)) {
 	c.Encryption = f
 }
@@ -105,37 +109,15 @@ func (c *GinControllerContext) Bind(params any, opts ...BindOption) {
 
 func (c *GinControllerContext) CheckToken(tk Token) {
 	if tk == nil {
-		println("1......token instance not set")
 		panic(e.AuthorizeError.SetErr(errors.New("token instance not set")))
 	}
 	c.token = tk.Clone()
-	token, err := c.tokenFromHeader(c.token.GetConfig().HeaderName, c.token.GetConfig().HeaderType)
+	err := c.token.Verify(c)
 	if err != nil {
-		if err != ErrEmptyAuthHeader {
-			println("2......" + err.Error())
-			panic(e.AuthorizeError.SetErr(err))
-		}
-		if c.token.GetConfig().CookieName != "" {
-			token, err = c.tokenFromCookie(c.token.GetConfig().CookieName)
-		}
-	}
-	if err != nil {
-		println("3......" + err.Error())
-		panic(e.AuthorizeError.SetErr(err))
-	}
-	err = c.token.Verify(token)
-	if err != nil {
-		println("4......" + err.Error())
-		panic(e.AuthorizeError.SetErr(err))
-	}
-	c.Request.Body, err = c.token.Decrypt(c.Request.Body)
-	if err != nil {
-		println("5......" + err.Error())
-		panic(e.AuthorizeError.SetErr(err))
+		panic(err)
 	}
 	pl := c.token.GetPayLoad()
 	if pl.Expire() < timeUtil.Milli() {
-		println("5......AuthorizeTimeOutError")
 		panic(e.AuthorizeTimeOutError)
 	}
 }
@@ -161,32 +143,12 @@ func (c *GinControllerContext) GetContext() context.Context {
 	return c
 }
 
-func (c *GinControllerContext) tokenFromHeader(key, typ string) (string, error) {
-	authHeader := c.Request.Header.Get(key)
-	if authHeader == "" {
-		return "", ErrEmptyAuthHeader
-	}
-	parts := strings.SplitN(authHeader, " ", 2)
-	if !(len(parts) == 2 && parts[0] == typ) {
-		return "", ErrInvalidAuthHeader
-	}
-	return parts[1], nil
-}
-
 func (c *GinControllerContext) tokenFromQuery(key string) (string, error) {
 	token := c.Query(key)
 	if token == "" {
 		return "", ErrEmptyQueryToken
 	}
 	return token, nil
-}
-
-func (c *GinControllerContext) tokenFromCookie(key string) (string, error) {
-	cookie, _ := c.Cookie(key)
-	if cookie == "" {
-		return "", ErrEmptyCookieToken
-	}
-	return cookie, nil
 }
 
 type BindOption uint8

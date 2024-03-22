@@ -2,14 +2,12 @@ package ctl
 
 import (
 	"github.com/carlos-yuan/cargen/core/config"
-	"io"
 )
 
 type Token interface {
 	Clone() Token
 	Sign() error
-	Verify(token string) error                         //验证
-	Decrypt(body io.ReadCloser) (io.ReadCloser, error) //解密
+	Verify(ctx ControllerContext) error //验证
 	GetPayLoad() Payload
 	GetConfig() config.Token
 }
