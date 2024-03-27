@@ -2,7 +2,6 @@ package cartime
 
 import (
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/carlos-yuan/cargen/util/convert"
@@ -12,6 +11,20 @@ const timeFormat = "20060102150405.000Z07"
 
 const DefaultFormat = "2006-01-02 15:04:05"
 const DefaultFormatDate = "2006-01-02"
+
+var location string
+var locationInt int64
+
+func init() {
+	var now = NowToInt()
+	location = strconv.Itoa(int(now))
+	location = location[len(location)-2:]
+	var err error
+	locationInt, err = strconv.ParseInt(location, 10, 64)
+	if err != nil {
+		panic(err)
+	}
+}
 
 func NowToInt() int64 {
 	return toInt(time.Now().Format(timeFormat))
@@ -33,10 +46,11 @@ func StrToInt(str, layout string) int64 {
 	if err != nil {
 		return 0
 	}
-	if t.Location() == nil || !strings.Contains(layout, "Z07") { //时间如果没有时区信息，默认加载本地时区
-		t = t.In(time.Local)
+	format := t.Format(timeFormat)
+	if len(format) == 19 { //没有时区
+		format += location
 	}
-	return toInt(t.Format(timeFormat))
+	return toInt(format)
 }
 
 func IntToStr(t int64, layout string) string {
