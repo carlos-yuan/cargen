@@ -123,6 +123,9 @@ func (c *GinControllerContext) CheckToken(tk Token) {
 }
 
 func (c *GinControllerContext) GetToken() Payload {
+	if c.token == nil {
+		return nil
+	}
 	return c.token.GetPayLoad()
 }
 
