@@ -133,6 +133,7 @@ const (
 	AuthTypeOAuth2  = "OAuth2"
 	AuthTypeSession = "Session"
 	AuthTypeCookie  = "Cookie"
+	AuthTypeSecret  = "Secret"
 
 	ApiParamsBindMethod    = "Bind"
 	ApiParamsSuccessMethod = "Success"
@@ -149,7 +150,7 @@ var APIMethods = []string{
 	http.MethodOptions,
 	http.MethodTrace}
 
-var AuthType = []string{AuthTypeJWT, AuthTypeOAuth2, AuthTypeSession, AuthTypeCookie}
+var AuthType = []string{AuthTypeJWT, AuthTypeOAuth2, AuthTypeSession, AuthTypeCookie, AuthTypeSecret}
 
 var ResponseType = []string{ResponseTypeJSON, ResponseTypeXML, ResponseTypeBytes}
 

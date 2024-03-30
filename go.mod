@@ -16,6 +16,7 @@ require (
 )
 
 require (
+	github.com/ZZMarquis/gm v1.3.2 // indirect
 	github.com/apache/thrift v0.19.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bufbuild/protocompile v0.9.0 // indirect
@@ -28,6 +29,7 @@ require (
 	github.com/cloudwego/localsession v0.0.2 // indirect
 	github.com/cloudwego/netpoll v0.6.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
+	github.com/deatil/go-cryptobin v1.0.2058 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/fatih/structtag v1.2.0 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
