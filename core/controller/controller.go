@@ -88,7 +88,7 @@ func (r *Result) Err(args ...any) *Result {
 				r.Msg = msg
 				r.Data = err.Error()
 			} else {
-				r.Msg = r.err.Error()
+				r.Msg = r.err.ErrMsg
 			}
 		} else {
 			r.err = r.err.SetErr(err, msg)
