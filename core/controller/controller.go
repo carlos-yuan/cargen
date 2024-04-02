@@ -3,6 +3,7 @@ package ctl
 import (
 	"context"
 	"errors"
+
 	e "github.com/carlos-yuan/cargen/core/error"
 
 	"github.com/jinzhu/copier"
@@ -92,7 +93,7 @@ func (r *Result) Err(args ...any) *Result {
 		} else {
 			r.err = r.err.SetErr(err, msg)
 			r.Data = err.Error()
-			r.Msg = r.err.Error()
+			r.Msg = r.err.ErrMsg
 		}
 	} else {
 		if msg != "" {
