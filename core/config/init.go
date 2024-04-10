@@ -24,7 +24,7 @@ func init() {
 	rootCmd.Flags().StringP("config", "c", "", "config path")
 	err := rootCmd.Execute()
 	if err != nil {
-		println("loading config " + err.Error())
+		println("loading cmd config info " + err.Error())
 	}
 
 	secret, err := loading(confPath)
@@ -42,7 +42,7 @@ func init() {
 		})
 	}
 	if err != nil {
-		println("read config " + err.Error())
+		println("set config instance" + err.Error())
 	}
 	global.PrintProjectInfo()
 }

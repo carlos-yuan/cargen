@@ -3,28 +3,19 @@ package gmsm
 import (
 	"bytes"
 	"encoding/base64"
-	"fmt"
 	"github.com/tjfoc/gmsm/sm4"
 )
 
 // PKCSPadd填充算法
 func PKCS7Padding(ciphertext []byte, blockSize int) []byte {
-	fmt.Printf("PKCS7Padding blockSize[%d]\n", blockSize)
-	fmt.Printf("PKCS7Padding len(ciphertext)[%d]\n", len(ciphertext))
 	padding := blockSize - len(ciphertext)%blockSize
-	fmt.Printf("PKCS7Padding len(ciphertext) blockSize[%d]\n", len(ciphertext)%blockSize)
-
 	padText := bytes.Repeat([]byte{byte(padding)}, padding)
-	fmt.Println(padText)
 	return append(ciphertext, padText...)
 }
 
 func PKCS7UnPadding(origData []byte) []byte {
 	length := len(origData)
-	fmt.Println(origData)
-	fmt.Printf("PKCSUnPadding origData len %d\n", len(origData))
 	unPadding := int(origData[length-1])
-	fmt.Printf("PKCSUnPadding origData unPadding %d\n", unPadding)
 	return origData[:(length - unPadding)]
 }
 
@@ -32,18 +23,11 @@ func PKCS7UnPadding(origData []byte) []byte {
 func SM4ECBEncrypt(originalBytes, key []byte) ([]byte, error) {
 	block, err := sm4.NewCipher(key)
 	if err != nil {
-		panic(err)
-	}
-	fmt.Println("SM44ECBEncrypt block.BlockSize")
-
-	//originalBytes = PKCS7Padding(originalBytes, block.BlockSize())
-
-	if len(originalBytes) != 16 {
-		fmt.Println("长度不是16")
-		panic(err)
 		return nil, err
 	}
-
+	if len(originalBytes) != 16 {
+		return nil, err
+	}
 	cipherArr := make([]byte, len(originalBytes))
 	block.Encrypt(cipherArr, originalBytes)
 	return cipherArr, nil
@@ -54,18 +38,13 @@ func SM4ECBEncrypt(originalBytes, key []byte) ([]byte, error) {
 func SM4ECBDecrypt(originalBytes, key []byte) ([]byte, error) {
 	block, err := sm4.NewCipher(key)
 	if err != nil {
-		panic(err)
-	}
-
-	if len(originalBytes) != 16 {
-		fmt.Println("长度不是16")
-		panic(err)
 		return nil, err
 	}
-
+	if len(originalBytes) != 16 {
+		return nil, err
+	}
 	cipherArr := make([]byte, len(originalBytes))
 	block.Decrypt(cipherArr, originalBytes)
-	//cipherArr = PKCS7UnPadding(cipherArr)
 	return cipherArr, nil
 
 }

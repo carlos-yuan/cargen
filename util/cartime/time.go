@@ -67,3 +67,5 @@ func IntToStr(t int64, layout string) string {
 
 // TimeStr 特殊时间格式转换使用 yyyyMMddHHmmssSSSZ 2023072518181866608 年-月-日-时-分-秒-毫秒-时区(0-23 超过11为-值，12为-1)
 type TimeStr string
+
+type TimeInt int64

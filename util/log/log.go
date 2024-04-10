@@ -24,18 +24,27 @@ func New(level int8) *CarLogger {
 }
 
 func (log *CarLogger) PrintError(err error) {
+	if err == nil {
+		return
+	}
 	var buffer bytes.Buffer
 	log.print(&buffer, err)
 	log.Error(buffer.String())
 }
 
 func (log *CarLogger) PrintWarn(err error) {
+	if err == nil {
+		return
+	}
 	var buffer bytes.Buffer
 	log.print(&buffer, err)
 	log.Warn(buffer.String())
 }
 
 func (log *CarLogger) PrintInfo(err error) {
+	if err == nil {
+		return
+	}
 	var buffer bytes.Buffer
 	log.print(&buffer, err)
 	log.Info(buffer.String())

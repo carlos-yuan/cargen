@@ -109,11 +109,13 @@ func (c *GinControllerContext) Bind(params any, opts ...BindOption) {
 
 func (c *GinControllerContext) CheckToken(tk Token) {
 	if tk == nil {
+		println("----------token instance not set")
 		panic(e.AuthorizeError.SetErr(errors.New("token instance not set")))
 	}
 	c.token = tk.Clone()
 	err := c.token.Verify(c)
 	if err != nil {
+		println("----------", err.Error())
 		panic(err)
 	}
 	pl := c.token.GetPayLoad()

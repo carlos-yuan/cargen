@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	e "github.com/carlos-yuan/cargen/core/error"
-
+	"github.com/carlos-yuan/cargen/util/log"
 	"github.com/jinzhu/copier"
 )
 
@@ -39,6 +39,12 @@ type Result struct {
 	Data      any    `json:"data"`      //返回数据
 	RequestId string `json:"requestId"` //请求编号链路中来
 	err       e.Err
+	log       *log.CarLogger
+}
+
+// String 成功返回字符串
+func NewResult(log *log.CarLogger) Result {
+	return Result{log: log}
 }
 
 // String 成功返回字符串
@@ -68,6 +74,9 @@ func (r *Result) SuccessIn(to any, from any) *Result {
 
 // Err 错误返回
 func (r *Result) Err(args ...any) *Result {
+	defer func() {
+		r.log.PrintError(r.err)
+	}()
 	var err error
 	var msg string
 	if len(args) == 2 {
