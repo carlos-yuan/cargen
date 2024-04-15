@@ -35,7 +35,7 @@ type ControllerContext interface {
 
 // Result 统一返回体
 type Result struct {
-	Code      int    `json:"code"`      //状态码 200正常 500错误
+	Code      int    `json:"code"`      //状态码 0正常 500错误
 	Msg       string `json:"msg"`       //错误消息
 	Data      any    `json:"data"`      //返回数据
 	RequestId string `json:"requestId"` //请求编号链路中来
@@ -51,14 +51,14 @@ func NewResult(log *log.CarLogger) Result {
 // String 成功返回字符串
 func (r *Result) String(data string) *Result {
 	r.Data = data
-	r.Code = 200
+	r.Code = 0
 	return r
 }
 
 // Bytes 成功返回字节数组
 func (r *Result) Bytes(data []byte) *Result {
 	r.Data = data
-	r.Code = 200
+	r.Code = 0
 	return r
 }
 
@@ -69,7 +69,7 @@ func (r *Result) SuccessIn(to any, from any) *Result {
 		return r.Err(err, "数据转换失败")
 	}
 	r.Data = to
-	r.Code = 200
+	r.Code = 0
 	return r
 }
 

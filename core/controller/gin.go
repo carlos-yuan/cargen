@@ -116,7 +116,7 @@ func (c *GinControllerContext) CheckToken(tk Token) {
 	err := c.token.Verify(c)
 	if err != nil {
 		println("----------", err.Error())
-		panic(err)
+		panic(e.AuthorizeError.SetErr(err))
 	}
 	pl := c.token.GetPayLoad()
 	if pl.Expire() < timeUtil.Milli() {
