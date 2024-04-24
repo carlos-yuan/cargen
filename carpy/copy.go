@@ -6,7 +6,6 @@ import (
 	openapi "github.com/carlos-yuan/cargen/open_api"
 	"github.com/carlos-yuan/cargen/util/md5"
 	"go/ast"
-	"go/format"
 	"strings"
 )
 
@@ -124,12 +123,6 @@ func (c *Carpy) generateCopyFile() error {
 		buf.WriteString(fmt.Sprintf(templateHeader, pkg.Name, importBuf.String()))
 		buf.WriteString(fmt.Sprintf(templateDecl, name, copyStructName, copyStructName, copyStructName, caseBuf.String()))
 		buf.WriteString(funcBuf.String())
-		b, err := format.Source(buf.Bytes())
-		if err != nil {
-			return err
-		}
-		println(string(b))
-		println("123")
 	}
 	return nil
 }

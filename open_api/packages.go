@@ -57,7 +57,7 @@ func (pkgs *Packages) InitPackages(base string) {
 	for _, file := range files {
 		goModFilePathData, _ := os.ReadFile(file)
 		modFile, _ := modfile.Parse("go.mod", goModFilePathData, nil)
-		path, err := fileUtil.CutPathLast(file, 1)
+		path, err := fileUtil.CutPathLast(fileUtil.FixPathSeparator(file), 1)
 		if err != nil {
 			continue
 		}

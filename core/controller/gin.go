@@ -69,7 +69,7 @@ func (c *GinControllerContext) Success(data any) *Result {
 	} else {
 		res.Data = data
 	}
-	res.Code = 200
+	res.Code = 0
 	return &res
 }
 
