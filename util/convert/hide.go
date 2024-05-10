@@ -3,23 +3,23 @@ package convert
 import "strings"
 
 func Hide(str string, length int) string {
-	max := len(str)
-	bytes := []uint8(str)
+	bytes := []rune(str)
+	max := len(bytes)
 	if max-1 < length {
 		builder := strings.Builder{}
-		builder.WriteByte(bytes[0])
+		builder.WriteString(string(bytes[0]))
 		for i := 0; i < length; i++ {
 			builder.WriteRune(42)
 		}
 		if max > 1 {
-			builder.WriteByte(bytes[max-1])
+			builder.WriteString(string(bytes[max-1]))
 		}
 		return builder.String()
 	} else {
 		start := (max - length) / 2
 		for i := 0; i < max; i++ {
 			if i >= start && i < start+length {
-				bytes[i] = uint8(42)
+				bytes[i] = rune(42)
 			}
 		}
 		return string(bytes)

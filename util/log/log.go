@@ -29,7 +29,6 @@ func (log *CarLogger) PrintError(err error) {
 	}
 	var buffer bytes.Buffer
 	log.print(&buffer, err)
-	log.Error(buffer.String())
 }
 
 func (log *CarLogger) PrintWarn(err error) {

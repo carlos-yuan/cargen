@@ -17,12 +17,13 @@ func GetUUID() string {
 }
 
 func RandInt64(min, max int64) int64 {
-	maxBigInt := big.NewInt(max)
+	maxBigInt := big.NewInt(max + 1)
 	i, _ := rand.Int(rand.Reader, maxBigInt)
-	if i.Int64() < min {
-		RandInt64(min, max)
+	num := i.Int64()
+	if num < min {
+		num = RandInt64(min, max)
 	}
-	return i.Int64()
+	return num
 }
 
 func GetIntNumber(l int) int64 {
